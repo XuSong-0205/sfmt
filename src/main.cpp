@@ -167,6 +167,33 @@ void test2()
 
     sx::print("str: {str}, tmp: {tmp}\n", NAME_ARGS(str, tmp));
 
+
+    const auto test_lambda = []() -> const char* {
+        const char* arg_1a = "1";
+        const auto arg_1b = "1";
+        const char* arg_1c = STR(1);
+
+        auto comp = [](const void* p1, const void* p2) {
+            return p1 == p2;
+        };
+
+
+        sx::print("arg_1a: {}, arg_1b: {}, arg_1c: {}\n",
+            static_cast<const void*>(arg_1a),
+            static_cast<const void*>(arg_1b),
+            static_cast<const void*>(arg_1c));
+
+        sx::print("arg_1a == arg_1b: {}\n", comp(arg_1a, arg_1b));
+        sx::print("arg_1a == arg_1c: {}\n", comp(arg_1a, arg_1c));
+        sx::print("arg_1b == arg_1c: {}\n", comp(arg_1b, arg_1c));
+
+        return arg_1a;
+    };
+    
+
+    const char* arg_1 = test_lambda();
+    sx::print("arg_1a({}): {}\n", static_cast<const void*>(arg_1), arg_1);
+
 }
 
 
