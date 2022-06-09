@@ -4,10 +4,9 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <tuple>
-#include "test_format.hpp"
+#include <chrono>
 #include "format.hpp"
-
+using namespace std::chrono;
 
 
 std::vector<std::function<void()>>& get_funcs()
@@ -17,14 +16,37 @@ std::vector<std::function<void()>>& get_funcs()
 }
 
 
+const auto get_now = []()
+{
+    return time_point_cast<milliseconds>(steady_clock::now());
+};
+
+
+const  std::string& get_path()
+{
+    static const std::string path = R"(E:\VScode\code\cpp_code\Test\test_format\data\)";
+    return path;
+}
+
+
+
 void test0()
 {
-    constexpr int COUNT = 10;
+    // 性能测试
+    constexpr int COUNT = 1000 * 100;
+    const auto path = get_path() + "test0.txt";
+    std::ofstream ofile(path);
+
+    auto t0 = get_now();
     for (int i = 0; i < COUNT; ++i)
     {
-        mini::print("[{}, {}]\n", i, i + 3.14);
-        LOG_INFO(i, 3.14, "test", "QAQ", MAKE_STR(i, COUNT, QwQ));
+        sx::print(ofile, "{}: {}\t 测试QAQ~，第 {} 条\n", __FILE__, __LINE__, i);
     }
+    auto t1 = get_now();
+    auto str = sx::format("{} 条格式化输出，共花费 {} ms\n", COUNT, (t1 - t0).count());
+    sx::print(ofile, str);
+    sx::print(str);
+
 }
 
 
@@ -84,6 +106,7 @@ struct Point
     }
 };
 
+
 void test1()
 {
     // 默认参数 {}              √
@@ -106,7 +129,7 @@ void test1()
     sx::print("ss 输出测试: {}\n", ss.str());
 
     // std::ofstream 测试
-    auto file_path = sx::format("{}", R"(F:\code\cpp\test\test2\data\ofile.txt)");
+    const auto file_path = get_path() + "ofile.txt";
     std::ofstream ofile(file_path);
     sx::print(ofile, "std::ofstream 文件测试, 路径: {file_path}\n", NAME_ARGS(file_path));
 
@@ -150,8 +173,8 @@ void test2()
 
 void add_func()
 {
-    get_funcs().emplace_back(test0);
-    get_funcs().emplace_back(test1);
+    // get_funcs().emplace_back(test0);
+    // get_funcs().emplace_back(test1);
     get_funcs().emplace_back(test2);
 }
 
