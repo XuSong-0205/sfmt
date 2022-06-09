@@ -2,7 +2,6 @@
 #define FORMAT_HPP
 
 #include <map>
-#include <vector>
 #include <string>
 #include <sstream>
 #include <utility>
@@ -130,24 +129,184 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 namespace detail
 {
 
-using size_type = std::size_t;
-using string_type = std::string;
+template<typename T>
+struct type_identity
+{
+    using type = T;
+};
 
 template<typename T>
-using vector_type = std::vector<T>;
+using type_identity_t = typename type_identity<T>::type;
+
+
+template<bool B, typename T>
+using enable_if_t = typename std::enable_if<B, T>::type;
+
+
+
+
+
+
+template<typename T>
+inline constexpr auto min(const T& a, const T& b) noexcept (noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
+{
+    return a < b ? a : b;
+}
+
+template<typename T>
+inline constexpr auto max(const T& a, const T& b) noexcept (noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
+{
+    return a < b ? b : a;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename CharT>
+class basic_string_view
+{
+private:
+    const CharT*        data_;
+    std::size_t         size_;
+
+public:
+    using value_type    = CharT;
+    using size_type     = std::size_t;
+    using char_traits   = std::char_traits<CharT>;
+    using iterator      = const CharT*;
+
+    static constexpr size_type npos = size_type(-1);
+
+public:
+    constexpr basic_string_view() noexcept 
+        : data_(nullptr), size_(0) { }
+
+    constexpr basic_string_view(const CharT* data, size_type size) noexcept
+        : data_(data), size_(size) { }
+
+    basic_string_view(const CharT* str) noexcept
+        : data_(str), size_(char_traits::length(str)) { } 
+
+    template<typename Traits, typename Alloc>
+    basic_string_view(const std::basic_string<CharT, Traits, Alloc>& str)
+        : data_(str.data()), size_(str.size()) { }
+
+    template<typename StringView,
+            enable_if_t<std::is_same<basic_string_view<CharT>, StringView>::value, int> = 0>
+    basic_string_view(StringView str) noexcept
+        : data_(str.data_), size_(str.size()) { }
+
+
+public:
+    constexpr const CharT* data() const noexcept            { return data_;         }
+    constexpr size_type size() const noexcept               { return size_;         }
+    constexpr size_type max_size() const noexcept           { return size_type(-1); }
+    constexpr bool empty() const noexcept                   { return size() == 0;   }
+
+    constexpr iterator begin() const noexcept               { return data_;         }
+    constexpr iterator end() const noexcept                 { return data_ + size_; }
+    constexpr const CharT& operator[](size_type pos) const  { return data_[pos];    }
+
+
+    size_type find(CharT ch) const noexcept 
+    {
+        auto iter = char_traits::find(data_, size_, ch);
+        return iter == nullptr ? npos : iter - data_;
+    }
+
+    int compare(basic_string_view other) const noexcept
+    {
+        size_type str_len = min(size(), other.size());
+        auto result = char_traits::compare(data_, other.data_, str_len);
+        if (result == 0)
+        {
+            result = (size_ == other.size_ ? 0 : (size_ < other.size_ ? -1 : 1));
+        }
+
+        return result;
+    }
+
+    void remove_prefix(size_type n) noexcept
+    {
+        data_ += n;
+        size_ -= n;
+    }
+
+    void remove_subfix(size_type n) noexcept
+    {
+        size_ -= n;
+    }
+
+    constexpr basic_string_view substr(size_type pos = 0, size_type count = npos) const noexcept 
+    {
+        return { data_ + pos, min(count, size_ - pos) };
+    }
+
+
+public:
+
+    friend std::ostream& operator<<(std::ostream& os, basic_string_view str)
+    {
+        os.write(str.data(), str.size());
+        return os;
+    }
+
+    friend bool operator==(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) == 0;
+    }
+
+    friend bool operator!=(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) != 0;
+    }
+
+    friend bool operator<(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) < 0;
+    }
+
+    friend bool operator<=(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) <= 0;
+    }
+
+    friend bool operator>(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) > 0;
+    }
+
+    friend bool operator>=(basic_string_view lhs, basic_string_view rhs) noexcept 
+    {
+        return lhs.compare(rhs) >= 0;
+    }
+};
+
+
+}   // namespace detail
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace detail
+{
+
+using size_type     = std::size_t;
+using string_type   = std::string;
+
 
 template<typename T>
 using init_list_type = std::initializer_list<T>;
 
 template<typename T, typename U>
-using pair_type = std::pair<T, U>;
+using pair_type     = std::pair<T, U>;
 
 template<typename K, typename V>
-using map_type = std::map<K, V>;
+using map_type      = std::map<K, V>;
 
 
-using arg_value_type = std::function<void(std::ostream&)>;
-using arg_type = pair_type<string_type, arg_value_type>;
+using arg_value_type    = std::function<void(std::ostream&)>;
+using arg_type          = pair_type<string_type, arg_value_type>;
 
 
 }   // namespace detail
@@ -238,17 +397,16 @@ string_type parse_name(const string_type& fmt, size_type& index)
 }
 
 
-string_type format_impl(const string_type& fmt, const map_type<string_type, arg_value_type>& args_name)
+void format_impl(std::ostream& os, const string_type& fmt, const map_type<string_type, arg_value_type>& args_map)
 {
     constexpr size_type npos = std::string::npos;
-    std::ostringstream oss;
     size_type index = 0;
     int default_id = 0;
     while (true)
     {
         auto pos = fmt.find('{', index);
         if (pos == npos) break;
-        oss << fmt.substr(index, pos - index);
+        os << fmt.substr(index, pos - index);
         
         auto arg_name = parse_name(fmt, pos);
         if (arg_name.empty())
@@ -256,17 +414,23 @@ string_type format_impl(const string_type& fmt, const map_type<string_type, arg_
             arg_name = std::to_string(default_id++);
         }
 
-        auto arg_iter = args_name.find(arg_name);
-        if (arg_iter == args_name.end())
+        auto arg_iter = args_map.find(arg_name);
+        if (arg_iter == args_map.end())
         {
             throw arg_error(format("arg name({}) not found", arg_name));
         }
 
-        arg_iter->second(oss);
+        arg_iter->second(os);
         index = pos;
     }
-    oss << fmt.substr(index);
+    os << fmt.substr(index);
+}
 
+
+string_type format_impl(const string_type& fmt, const map_type<string_type, arg_value_type>& args_map)
+{
+    std::ostringstream oss;
+    format_impl(oss, fmt, args_map);
     return oss.str();
 }
 
@@ -288,22 +452,9 @@ arg_type num_arg(size_type index, T&& val)
 
 
 template<typename T, typename CharT = char>
-arg_type name_arg(const CharT* name, const T& val)
+arg_type name_arg(const CharT* name, T&& val)
 {
-    return { name, arg_value(val) };
-}
-
-
-vector_type<arg_type> make_num_args(init_list_type<arg_value_type> args_value_list)
-{
-    size_type i = 0;
-    vector_type<arg_type> ans(args_value_list.size());
-    for (auto&& val : args_value_list)
-    {
-        ans[i] = std::make_pair(std::to_string(i++), std::move(val));
-    }
-
-    return ans;
+    return { name, arg_value(std::forward<T>(val)) };
 }
 
 
@@ -313,7 +464,7 @@ map_type<string_type, arg_value_type> make_num_args_map(init_list_type<arg_value
     size_type i = 0;
     for (auto&& num_val : num_args_list)
     {
-        ans.emplace(std::to_string(i++), std::move(num_val));
+        ans.emplace(std::to_string(i++), std::move(num_val));   // num arg
     }
 
     return ans;
@@ -326,8 +477,8 @@ map_type<string_type, arg_value_type> make_name_args_map(init_list_type<arg_type
     size_type i = 0;
     for (auto&& name_val : name_args_list)
     {
-        ans.emplace(std::to_string(i++), name_val.second);  // 位置参数
-        ans.emplace(std::move(name_val));                   // 名字参数
+        ans.emplace(std::to_string(i++), name_val.second);  // num  arg
+        ans.emplace(std::move(name_val));                   // name arg
     }
 
     return ans;
@@ -354,6 +505,33 @@ detail::string_type format(const detail::string_type& fmt, detail::init_list_typ
 {
     return detail::format_impl(fmt, detail::make_name_args_map(name_args_list));
 }
+
+
+template<typename... Args>
+void print(std::ostream& os, const detail::string_type& fmt, Args&&... args)
+{
+    detail::format_impl(os, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
+}
+
+
+template<typename... Args>
+void print(const detail::string_type& fmt, Args&&... args)
+{
+    detail::format_impl(std::cout, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
+}
+
+
+void print(std::ostream& os, const detail::string_type& fmt, detail::init_list_type<detail::arg_type> name_args_list)
+{
+    detail::format_impl(os, fmt, detail::make_name_args_map(name_args_list));
+}
+
+
+void print(const detail::string_type& fmt, detail::init_list_type<detail::arg_type> name_args_list)
+{
+    detail::format_impl(std::cout, fmt, detail::make_name_args_map(name_args_list));
+}
+
 
 
 }   // namespace sx
