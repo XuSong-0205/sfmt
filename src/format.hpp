@@ -148,13 +148,13 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 
 
 template<typename T>
-inline constexpr auto min(const T& a, const T& b) noexcept (noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
+inline constexpr auto min(const T& a, const T& b) noexcept(noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
 {
     return a < b ? a : b;
 }
 
 template<typename T>
-inline constexpr auto max(const T& a, const T& b) noexcept (noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
+inline constexpr auto max(const T& a, const T& b) noexcept(noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
 {
     return a < b ? b : a;
 }
