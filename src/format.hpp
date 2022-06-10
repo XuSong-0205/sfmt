@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <utility>
 #include <iostream>
@@ -139,6 +140,13 @@ template<typename T>
 using type_identity_t = typename type_identity<T>::type;
 
 
+template<typename... Ts>
+struct make_void : public type_identity<void> { };
+
+template<typename... Ts>
+using void_t = typename make_void<Ts...>::type;
+
+
 template<bool B, typename T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 
@@ -184,17 +192,13 @@ public:
     constexpr basic_string_view(const CharT* data, size_type size) noexcept
         : data_(data), size_(size) { }
 
-    basic_string_view(const CharT* str) noexcept
+    basic_string_view(const CharT* const str) noexcept
         : data_(str), size_(char_traits::length(str)) { } 
 
     template<typename Traits, typename Alloc>
     basic_string_view(const std::basic_string<CharT, Traits, Alloc>& str)
         : data_(str.data()), size_(str.size()) { }
 
-    template<typename StringView,
-            enable_if_t<std::is_same<basic_string_view<CharT>, StringView>::value, int> = 0>
-    basic_string_view(StringView str) noexcept
-        : data_(str.data_), size_(str.size()) { }
 
 
 public:
@@ -208,9 +212,10 @@ public:
     constexpr const CharT& operator[](size_type pos) const  { return data_[pos];    }
 
 
-    size_type find(CharT ch) const noexcept 
+    size_type find(CharT ch, size_type pos = 0) const noexcept 
     {
-        auto iter = char_traits::find(data_, size_, ch);
+        if (pos >= size()) return npos;
+        auto iter = char_traits::find(data_ + pos, size_ - pos, ch);
         return iter == nullptr ? npos : iter - data_;
     }
 
@@ -283,6 +288,14 @@ public:
 };
 
 
+
+template<typename CharT>
+struct is_basic_string_view : std::false_type { };
+
+template<typename CharT>
+struct is_basic_string_view<basic_string_view<CharT>> : std::true_type { };
+
+
 }   // namespace detail
 
 
@@ -293,7 +306,7 @@ namespace detail
 
 using size_type     = std::size_t;
 using string_type   = std::string;
-
+using string_view   = basic_string_view<char>;
 
 template<typename T>
 using init_list_type = std::initializer_list<T>;
@@ -306,7 +319,7 @@ using map_type      = std::map<K, V>;
 
 
 using arg_value_type    = std::function<void(std::ostream&)>;
-using arg_type          = pair_type<string_type, arg_value_type>;
+using arg_type          = pair_type<string_view, arg_value_type>;
 
 
 }   // namespace detail
@@ -314,9 +327,9 @@ using arg_type          = pair_type<string_type, arg_value_type>;
 
 
 template<typename... Args>
-detail::string_type format(const detail::string_type& fmt, Args&&... args);
+detail::string_type format(detail::string_view fmt, Args&&... args);
 
-detail::string_type format(const detail::string_type& fmt, detail::init_list_type<detail::arg_type> args_list);
+detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> args_list);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -346,9 +359,150 @@ public:
 };
 
 
+class format_error : public std::runtime_error
+{
+public:
+    explicit format_error(const char* msg)
+        : std::runtime_error(msg) { }
+
+    explicit format_error(const std::string& msg)
+        : std::runtime_error(msg) { }
+};
 
 
-constexpr bool is_space(char ch)noexcept
+
+
+
+inline const char* num_arg_id(size_type id) 
+{
+    static constexpr const char arg_id[MAX_ARGS_COUNT][3]{
+         "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",
+        "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
+        "20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
+        "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",
+        "40", "41", "42", "43", "44", "45", "46", "47", "48", "49",
+        "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
+        "60", "61", "62", "63"
+    };
+
+    if (id >= MAX_ARGS_COUNT) 
+    {
+        throw arg_error(format("num_arg id to big({} >= {})", id, MAX_ARGS_COUNT));
+    }
+
+    return arg_id[id];
+}
+
+
+inline char* num_buffer() noexcept
+{
+    constexpr size_type buffer_len = 32;
+    static char buffer[buffer_len]{ 0 };
+
+    return buffer;
+}
+
+
+inline size_t count_digits(unsigned int num) noexcept
+{
+	size_t count = 1;
+	for (;;)
+	{
+		if (num < 10)		return count;
+		if (num < 100)		return count + 1;
+		if (num < 1000)		return count + 2;
+		if (num < 10000)	return count + 3;
+		
+		num /= 10000u;
+		count += 4;
+	}
+
+	return count;
+}
+
+
+string_view num2str(int num)
+{
+	static constexpr const char digits[][2]{
+		{'0', '0'}, {'0', '1'}, {'0', '2'}, {'0', '3'}, {'0', '4'}, {'0', '5'}, {'0', '6'}, {'0', '7'}, {'0', '8'}, {'0', '9'},
+		{'1', '0'}, {'1', '1'}, {'1', '2'}, {'1', '3'}, {'1', '4'}, {'1', '5'}, {'1', '6'}, {'1', '7'}, {'1', '8'}, {'1', '9'},
+		{'2', '0'}, {'2', '1'}, {'2', '2'}, {'2', '3'}, {'2', '4'}, {'2', '5'}, {'2', '6'}, {'2', '7'}, {'2', '8'}, {'2', '9'},
+		{'3', '0'}, {'3', '1'}, {'3', '2'}, {'3', '3'}, {'3', '4'}, {'3', '5'}, {'3', '6'}, {'3', '7'}, {'3', '8'}, {'3', '9'},
+		{'4', '0'}, {'4', '1'}, {'4', '2'}, {'4', '3'}, {'4', '4'}, {'4', '5'}, {'4', '6'}, {'4', '7'}, {'4', '8'}, {'4', '9'},
+		{'5', '0'}, {'5', '1'}, {'5', '2'}, {'5', '3'}, {'5', '4'}, {'5', '5'}, {'5', '6'}, {'5', '7'}, {'5', '8'}, {'5', '9'},
+		{'6', '0'}, {'6', '1'}, {'6', '2'}, {'6', '3'}, {'6', '4'}, {'6', '5'}, {'6', '6'}, {'6', '7'}, {'6', '8'}, {'6', '9'},
+		{'7', '0'}, {'7', '1'}, {'7', '2'}, {'7', '3'}, {'7', '4'}, {'7', '5'}, {'7', '6'}, {'7', '7'}, {'7', '8'}, {'7', '9'},
+		{'8', '0'}, {'8', '1'}, {'8', '2'}, {'8', '3'}, {'8', '4'}, {'8', '5'}, {'8', '6'}, {'8', '7'}, {'8', '8'}, {'8', '9'},
+		{'9', '0'}, {'9', '1'}, {'9', '2'}, {'9', '3'}, {'9', '4'}, {'9', '5'}, {'9', '6'}, {'9', '7'}, {'9', '8'}, {'9', '9'},
+	};
+
+
+    if (num == 0)
+    {
+        return { "0", 1 };
+    }
+
+
+	auto buff_ptr = num_buffer();
+	const auto buff = buff_ptr;
+	using unsigned_number_t = std::make_unsigned<int>::type;
+	unsigned_number_t abs_num = 0;
+    size_type len = 0;
+
+	if (num < 0)
+	{
+		*buff_ptr = '-';
+		abs_num = static_cast<unsigned_number_t>(-num);
+		len = 1 + count_digits(abs_num);
+	}
+	else
+	{
+		abs_num = static_cast<unsigned_number_t>(num);
+		len = count_digits(abs_num);
+	}
+    buff_ptr += len;
+
+
+	while (abs_num >= 100)
+	{
+		const auto index = abs_num % 100;
+		abs_num /= 100;
+		*(--buff_ptr) = digits[index][1];
+		*(--buff_ptr) = digits[index][0];
+	}
+
+	if (abs_num >= 10)
+	{
+		const auto index = abs_num;
+		*(--buff_ptr) = digits[index][1];
+		*(--buff_ptr) = digits[index][0];
+	}
+	else
+	{
+		*(--buff_ptr) = static_cast<char>('0' + abs_num);
+	}
+
+	return string_view(buff, len);
+}
+
+
+string_view num2str(float num)
+{
+    return std::to_string(num);
+}
+
+
+template<typename T, typename = void>
+struct is_num2str : std::false_type { };
+
+template<typename T>
+struct is_num2str<T, void_t<decltype(num2str(std::declval<T>()))>> : std::true_type { };
+
+
+
+
+
+inline constexpr bool is_space(char ch)noexcept
 {
     return  ch == ' '  || 
             ch == '\f' || 
@@ -358,7 +512,7 @@ constexpr bool is_space(char ch)noexcept
 }
 
 
-void skip_space(const string_type& fmt, size_type& index)
+inline void skip_space(string_view fmt, size_type& index)
 {
     while (is_space(fmt[index]))
     {
@@ -367,41 +521,57 @@ void skip_space(const string_type& fmt, size_type& index)
 }
 
 
-string_type parse_name(const string_type& fmt, size_type& index)
+string_view parse_name(string_view fmt, size_type& index)
 {
     if (fmt[index++] != '{') 
     {
         throw parse_error("parse format name args begin error");
     }
+
+    bool is_escape = false;
+    if (fmt[index] == '{')
+    {
+        ++index;
+        is_escape = true;
+    }
     skip_space(fmt, index);
 
-
-    string_type name;
+    
+    const auto str = fmt.data() + index;
+    size_type len = 0;
     while (true)
     {
         char ch = fmt[index];
         if (is_space(ch) || ch == '}') break;
 
-        name.push_back(ch);
+        ++len;
         ++index;
     }
 
 
-    skip_space(fmt, index);
+    skip_space(fmt, index);    
     if (fmt[index++] != '}')
     {
         throw parse_error("parse format name args end error");
     }
 
-    return name;
+    if (is_escape)
+    {
+        if (fmt[index++] != '}')
+        {
+            throw parse_error("parse format miss escape character '}'");
+        }
+    }
+
+    return { str, len };
 }
 
 
-void format_impl(std::ostream& os, const string_type& fmt, const map_type<string_type, arg_value_type>& args_map)
+void format_impl(std::ostream& os, string_view fmt, const map_type<string_view, arg_value_type>& args_map)
 {
-    constexpr size_type npos = std::string::npos;
+    constexpr size_type npos = string_view::npos;
     size_type index = 0;
-    int default_id = 0;
+    size_type default_id = 0;
     while (true)
     {
         auto pos = fmt.find('{', index);
@@ -411,7 +581,7 @@ void format_impl(std::ostream& os, const string_type& fmt, const map_type<string
         auto arg_name = parse_name(fmt, pos);
         if (arg_name.empty())
         {
-            arg_name = std::to_string(default_id++);
+            arg_name = num_arg_id(default_id++);
         }
 
         auto arg_iter = args_map.find(arg_name);
@@ -427,7 +597,7 @@ void format_impl(std::ostream& os, const string_type& fmt, const map_type<string
 }
 
 
-string_type format_impl(const string_type& fmt, const map_type<string_type, arg_value_type>& args_map)
+string_type format_impl(string_view fmt, const map_type<string_view, arg_value_type>& args_map)
 {
     std::ostringstream oss;
     format_impl(oss, fmt, args_map);
@@ -437,47 +607,48 @@ string_type format_impl(const string_type& fmt, const map_type<string_type, arg_
 
 
 
+
 template<typename T>
-arg_value_type arg_value(const T& val)
+inline arg_value_type arg_value(const T& val)
 {
     return [&val](std::ostream& os) { os << val; };
 }
 
 
 template<typename T>
-arg_type num_arg(size_type index, T&& val)
+inline arg_type num_arg(size_type num, T&& val)
 {
-    return { std::to_string(index), arg_value(std::forward<T>(val)) };
+    return { num_arg_id(num), arg_value(std::forward<T>(val)) };
 }
 
 
 template<typename T, typename CharT = char>
-arg_type name_arg(const CharT* name, T&& val)
+inline arg_type name_arg(const CharT* name, T&& val)
 {
     return { name, arg_value(std::forward<T>(val)) };
 }
 
 
-map_type<string_type, arg_value_type> make_num_args_map(init_list_type<arg_value_type> num_args_list)
+map_type<string_view, arg_value_type> make_num_args_map(init_list_type<arg_value_type> num_args_list)
 {
-    map_type<string_type, arg_value_type> ans;
+    map_type<string_view, arg_value_type> ans;
     size_type i = 0;
     for (auto&& num_val : num_args_list)
     {
-        ans.emplace(std::to_string(i++), std::move(num_val));   // num arg
+        ans.emplace(num_arg_id(i++), std::move(num_val));   // num arg
     }
 
     return ans;
 }
 
 
-map_type<string_type, arg_value_type> make_name_args_map(init_list_type<arg_type> name_args_list)
+map_type<string_view, arg_value_type> make_name_args_map(init_list_type<arg_type> name_args_list)
 {
-    map_type<string_type, arg_value_type> ans;
+    map_type<string_view, arg_value_type> ans;
     size_type i = 0;
     for (auto&& name_val : name_args_list)
     {
-        ans.emplace(std::to_string(i++), name_val.second);  // num  arg
+        ans.emplace(num_arg_id(i++), name_val.second);      // num  arg
         ans.emplace(std::move(name_val));                   // name arg
     }
 
@@ -495,39 +666,39 @@ map_type<string_type, arg_value_type> make_name_args_map(init_list_type<arg_type
 
 
 template<typename... Args>
-detail::string_type format(const detail::string_type& fmt, Args&&... args)
+detail::string_type format(detail::string_view fmt, Args&&... args)
 {
     return detail::format_impl(fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
 }
 
 
-detail::string_type format(const detail::string_type& fmt, detail::init_list_type<detail::arg_type> name_args_list)
+detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
     return detail::format_impl(fmt, detail::make_name_args_map(name_args_list));
 }
 
 
 template<typename... Args>
-void print(std::ostream& os, const detail::string_type& fmt, Args&&... args)
+void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
     detail::format_impl(os, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
 }
 
 
 template<typename... Args>
-void print(const detail::string_type& fmt, Args&&... args)
+void print(detail::string_view fmt, Args&&... args)
 {
     detail::format_impl(std::cout, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
 }
 
 
-void print(std::ostream& os, const detail::string_type& fmt, detail::init_list_type<detail::arg_type> name_args_list)
+void print(std::ostream& os, detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
     detail::format_impl(os, fmt, detail::make_name_args_map(name_args_list));
 }
 
 
-void print(const detail::string_type& fmt, detail::init_list_type<detail::arg_type> name_args_list)
+void print(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
     detail::format_impl(std::cout, fmt, detail::make_name_args_map(name_args_list));
 }

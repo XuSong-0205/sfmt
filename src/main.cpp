@@ -24,7 +24,7 @@ const auto get_now = []()
 
 const  std::string& get_path()
 {
-    static const std::string path = R"(E:\VScode\code\cpp_code\Test\test_format\data\)";
+    static const std::string path = R"(F:\code\cpp\test\test2\data\)";
     return path;
 }
 
@@ -140,24 +140,20 @@ void test1()
 void test2()
 {
     // 下一步优化：
-    // 1. to_string 优化
-    // 2. string 优化为 string_view
+    // 1. to_string 优化                x
+    // 2. string 优化为 string_view     √
     // 3. 将输出的流实现优化为其他实现？（待定）
 
 
     // 增加功能：
     // 1. 增加浮点数的可选格式化输出 {name:x.y}
     // 2. 增加可选的格式化对齐? {name:<10}
-    // 3. 增加对 unicode 字符的支持?(wchar_t)
+    // 3. 增加对 bool, float, 指针 的可选格式化标识? {name:p|b|f|e}     指针/bool/浮点格式/科学计数法格式
+    // x. 增加对 unicode 字符的支持?(wchar_t)
 
 
-    std::map<std::string, int> my_map;
-    std::string s0;
-    std::string s1;
-    auto x = s0 < s1;
-
-
-
+    const auto func_name = "test2";
+    const sx::detail::string_view sview0(func_name);
     constexpr auto str = "basic_string_view";
     constexpr sx::detail::basic_string_view<char> str_view(str, 18);
     constexpr auto beg = str_view.begin();
@@ -166,33 +162,7 @@ void test2()
     constexpr auto t_beg = tmp.begin();
 
     sx::print("str: {str}, tmp: {tmp}\n", NAME_ARGS(str, tmp));
-
-
-    const auto test_lambda = []() -> const char* {
-        const char* arg_1a = "1";
-        const auto arg_1b = "1";
-        const char* arg_1c = STR(1);
-
-        auto comp = [](const void* p1, const void* p2) {
-            return p1 == p2;
-        };
-
-
-        sx::print("arg_1a: {}, arg_1b: {}, arg_1c: {}\n",
-            static_cast<const void*>(arg_1a),
-            static_cast<const void*>(arg_1b),
-            static_cast<const void*>(arg_1c));
-
-        sx::print("arg_1a == arg_1b: {}\n", comp(arg_1a, arg_1b));
-        sx::print("arg_1a == arg_1c: {}\n", comp(arg_1a, arg_1c));
-        sx::print("arg_1b == arg_1c: {}\n", comp(arg_1b, arg_1c));
-
-        return arg_1a;
-    };
-    
-
-    const char* arg_1 = test_lambda();
-    sx::print("arg_1a({}): {}\n", static_cast<const void*>(arg_1), arg_1);
+    sx::print("嵌套测试 str: {{ str }}\n", NAME_ARGS(str));
 
 }
 
@@ -200,8 +170,8 @@ void test2()
 
 void add_func()
 {
-    // get_funcs().emplace_back(test0);
-    // get_funcs().emplace_back(test1);
+    get_funcs().emplace_back(test0);
+    get_funcs().emplace_back(test1);
     get_funcs().emplace_back(test2);
 }
 
