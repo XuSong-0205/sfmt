@@ -304,18 +304,16 @@ struct is_basic_string_view<basic_string_view<CharT>> : std::true_type { };
 namespace detail
 {
 
-using size_type     = std::size_t;
-using string_type   = std::string;
-using string_view   = basic_string_view<char>;
+using size_type         = std::size_t;
+using string_type       = std::string;
+using string_view       = basic_string_view<char>;
+
 
 template<typename T>
-using init_list_type = std::initializer_list<T>;
+using init_list_type    = std::initializer_list<T>;
 
 template<typename T, typename U>
-using pair_type     = std::pair<T, U>;
-
-template<typename K, typename V>
-using map_type      = std::map<K, V>;
+using pair_type         = std::pair<T, U>;
 
 
 using arg_value_type    = std::function<void(std::ostream&)>;
@@ -331,8 +329,8 @@ detail::string_type format(detail::string_view fmt, Args&&... args);
 
 detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> args_list);
 
-
 ////////////////////////////////////////////////////////////////////////////////
+
 
 namespace detail
 {
@@ -370,30 +368,143 @@ public:
 };
 
 
+}   // namespace detail
 
 
 
-inline const char* num_arg_id(size_type id) 
+namespace detail
 {
-    static constexpr const char arg_id[MAX_ARGS_COUNT][3]{
-         "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",
-        "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
-        "20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
-        "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",
-        "40", "41", "42", "43", "44", "45", "46", "47", "48", "49",
-        "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
-        "60", "61", "62", "63"
-    };
 
-    if (id >= MAX_ARGS_COUNT) 
+template<typename CharT>
+class basic_format_args
+{
+public:
+    using char_type         = CharT;
+    using value_type        = CharT;
+    
+    template<typename K, typename V>
+    using map_type          = std::map<K, V>;
+
+    
+public:
+    basic_format_args() noexcept = default;
+    
+    basic_format_args(const basic_format_args&) = delete;
+    
+    basic_format_args& operator=(const basic_format_args&) = delete;
+
+    
+    template<typename... Args>
+    explicit basic_format_args(Args&&... args)
     {
-        throw arg_error(format("num_arg id to big({} >= {})", id, MAX_ARGS_COUNT));
+        make_num_args({ arg_value(std::forward<Args>(args))... });
     }
 
-    return arg_id[id];
-}
+    
+    explicit basic_format_args(init_list_type<arg_type> name_args_list)
+    {
+        make_name_args(name_args_list);
+    }
 
 
+public:
+
+    const map_type<string_view, arg_value_type>& get_args() const noexcept
+    {
+        return args_;
+    }
+
+    
+    static string_view num_arg_id(size_type id) 
+    {
+        static constexpr const char arg_id[MAX_ARGS_COUNT][3]{
+             "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",
+            "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
+            "20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
+            "30", "31", "32", "33", "34", "35", "36", "37", "38", "39",
+            "40", "41", "42", "43", "44", "45", "46", "47", "48", "49",
+            "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
+            "60", "61", "62", "63"
+        };
+
+        if (id >= MAX_ARGS_COUNT) 
+        {
+            throw arg_error(format("num_arg id to big({} >= {})", id, MAX_ARGS_COUNT));
+        }
+
+        return { arg_id[id], id < 10u ? 1u : 2u };
+    }
+
+    
+    template<typename T>
+    static arg_value_type arg_value(const T& val)  noexcept
+    {
+        return [&val](std::ostream& os) { os << val; };
+    }
+
+
+    template<typename T>
+    static arg_type num_arg(size_type num, T&& val)  noexcept
+    {
+        return { num_arg_id(num), arg_value(std::forward<T>(val)) };
+    }
+
+
+    template<typename T>
+    static arg_type name_arg(const CharT* name, T&& val) noexcept
+    {
+        return { name, arg_value(std::forward<T>(val)) };
+    }
+
+
+private:
+
+    void make_num_args(init_list_type<arg_value_type> num_args_list)
+    {
+        size_type i = 0;
+        for (auto&& num_val : num_args_list)
+        {
+            args_.emplace(num_arg_id(i++), std::move(num_val));   // num arg
+        }
+    }
+
+
+    void make_name_args(init_list_type<arg_type> name_args_list)
+    {
+        size_type i = 0;
+        for (auto&& name_val : name_args_list)
+        {
+            args_.emplace(num_arg_id(i++), name_val.second);      // num  arg
+            args_.emplace(std::move(name_val));                   // name arg
+        }
+    }
+
+    
+private:
+    map_type<string_view, arg_value_type>   args_;
+    
+};
+
+
+using format_args = basic_format_args<char>;
+
+
+}   // namespace detail
+
+
+
+template<typename... Args>
+detail::string_type format(detail::string_view fmt, Args&&... args);
+
+detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> args_list);
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+namespace detail
+{
+
+    
 inline char* num_buffer() noexcept
 {
     constexpr size_type buffer_len = 32;
@@ -567,9 +678,10 @@ string_view parse_name(string_view fmt, size_type& index)
 }
 
 
-void format_impl(std::ostream& os, string_view fmt, const map_type<string_view, arg_value_type>& args_map)
+void format_impl(std::ostream& os, string_view fmt, const format_args& args)
 {
     constexpr size_type npos = string_view::npos;
+    const auto& args_map = args.get_args();
     size_type index = 0;
     size_type default_id = 0;
     while (true)
@@ -581,7 +693,7 @@ void format_impl(std::ostream& os, string_view fmt, const map_type<string_view, 
         auto arg_name = parse_name(fmt, pos);
         if (arg_name.empty())
         {
-            arg_name = num_arg_id(default_id++);
+            arg_name = format_args::num_arg_id(default_id++);
         }
 
         auto arg_iter = args_map.find(arg_name);
@@ -597,63 +709,13 @@ void format_impl(std::ostream& os, string_view fmt, const map_type<string_view, 
 }
 
 
-string_type format_impl(string_view fmt, const map_type<string_view, arg_value_type>& args_map)
+string_type format_impl(string_view fmt, const format_args& args)
 {
     std::ostringstream oss;
-    format_impl(oss, fmt, args_map);
+    format_impl(oss, fmt, args);
     return oss.str();
 }
 
-
-
-
-
-template<typename T>
-inline arg_value_type arg_value(const T& val)
-{
-    return [&val](std::ostream& os) { os << val; };
-}
-
-
-template<typename T>
-inline arg_type num_arg(size_type num, T&& val)
-{
-    return { num_arg_id(num), arg_value(std::forward<T>(val)) };
-}
-
-
-template<typename T, typename CharT = char>
-inline arg_type name_arg(const CharT* name, T&& val)
-{
-    return { name, arg_value(std::forward<T>(val)) };
-}
-
-
-map_type<string_view, arg_value_type> make_num_args_map(init_list_type<arg_value_type> num_args_list)
-{
-    map_type<string_view, arg_value_type> ans;
-    size_type i = 0;
-    for (auto&& num_val : num_args_list)
-    {
-        ans.emplace(num_arg_id(i++), std::move(num_val));   // num arg
-    }
-
-    return ans;
-}
-
-
-map_type<string_view, arg_value_type> make_name_args_map(init_list_type<arg_type> name_args_list)
-{
-    map_type<string_view, arg_value_type> ans;
-    size_type i = 0;
-    for (auto&& name_val : name_args_list)
-    {
-        ans.emplace(num_arg_id(i++), name_val.second);      // num  arg
-        ans.emplace(std::move(name_val));                   // name arg
-    }
-
-    return ans;
-}
 
 
 }   // namespace detail
@@ -661,46 +723,46 @@ map_type<string_view, arg_value_type> make_name_args_map(init_list_type<arg_type
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define __NAME_ARG(x)               sx::detail::name_arg(STR(x), x)
+#define __NAME_ARG(x)               sx::detail::format_args::name_arg(STR(x), x)
 #define NAME_ARGS(...)              { UNPACK(__NAME_ARG, __VA_ARGS__) }
 
 
 template<typename... Args>
 detail::string_type format(detail::string_view fmt, Args&&... args)
 {
-    return detail::format_impl(fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
+    return detail::format_impl(fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    return detail::format_impl(fmt, detail::make_name_args_map(name_args_list));
+    return detail::format_impl(fmt, detail::format_args(name_args_list));
 }
 
 
 template<typename... Args>
 void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
-    detail::format_impl(os, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
+    detail::format_impl(os, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
 void print(detail::string_view fmt, Args&&... args)
 {
-    detail::format_impl(std::cout, fmt, detail::make_num_args_map({ detail::arg_value(std::forward<Args>(args))... }));
+    detail::format_impl(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 void print(std::ostream& os, detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    detail::format_impl(os, fmt, detail::make_name_args_map(name_args_list));
+    detail::format_impl(os, fmt, detail::format_args(name_args_list));
 }
 
 
 void print(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    detail::format_impl(std::cout, fmt, detail::make_name_args_map(name_args_list));
+    detail::format_impl(std::cout, fmt, detail::format_args(name_args_list));
 }
 
 
