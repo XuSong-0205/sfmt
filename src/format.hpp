@@ -309,25 +309,12 @@ using string_type       = std::string;
 using string_view       = basic_string_view<char>;
 
 
-template<typename T>
-using init_list_type    = std::initializer_list<T>;
-
-template<typename T, typename U>
-using pair_type         = std::pair<T, U>;
-
-
-using arg_value_type    = std::function<void(std::ostream&)>;
-using arg_type          = pair_type<string_view, arg_value_type>;
-
-
 }   // namespace detail
 
 
 
 template<typename... Args>
 detail::string_type format(detail::string_view fmt, Args&&... args);
-
-detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> args_list);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -381,11 +368,19 @@ class basic_format_args
 public:
     using char_type         = CharT;
     using value_type        = CharT;
+
+    template<typename T>
+    using init_list_type    = std::initializer_list<T>;
+    
+    template<typename T, typename U>
+    using pair_type         = std::pair<T, U>;
     
     template<typename K, typename V>
     using map_type          = std::map<K, V>;
 
-    
+    using arg_value_type    = std::function<void(std::ostream&)>;
+    using arg_type          = pair_type<string_view, arg_value_type>;
+
 public:
     basic_format_args() noexcept = default;
     
@@ -486,19 +481,14 @@ private:
 };
 
 
-using format_args = basic_format_args<char>;
+using format_args    = basic_format_args<char>;
+using arg_type       = format_args::arg_type;
 
+template<typename T>
+using init_list_type = format_args::init_list_type<T>;
 
 }   // namespace detail
 
-
-
-template<typename... Args>
-detail::string_type format(detail::string_view fmt, Args&&... args);
-
-detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> args_list);
-
-////////////////////////////////////////////////////////////////////////////////
 
 
 namespace detail
