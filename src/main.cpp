@@ -146,10 +146,10 @@ void test2()
 
 
     // 增加功能：
-    // 1. 增加浮点数的可选格式化输出 {name:x.y}
-    // 2. 增加可选的格式化对齐? {name:<10}
-    // 3. 增加对 bool, float, 指针 的可选格式化标识? {name:p|b|f|e}     指针/bool/浮点格式/科学计数法格式
-    // x. 增加对 unicode 字符的支持?(wchar_t)
+    // 1. 增加浮点数的可选格式化输出 {name:x.y}     √
+    // 2. 增加可选的格式化对齐? {name:<10}          √
+    // 3. 增加对 bool, float, 指针 的可选格式化标识? {name:p|b|f|e}     指针/bool/浮点格式/科学计数法格式   部分
+    // x. 增加对 unicode 字符的支持?(wchar_t)       x
 
 
     const auto func_name = "test2";
@@ -164,6 +164,28 @@ void test2()
     sx::print("str: {str}, tmp: {tmp}\n", NAME_ARGS(str, tmp));
     sx::print("嵌套测试 str: {{ str }}\n", NAME_ARGS(str));
 
+    sx::print("格式化输出测试: \n");
+    sx::print("left: {:s<6}, right: {:x>6}\n", 0, 1, 2);
+
+    double pi = 3.14159265358;
+    double rad2 = 1.4142135;
+    sx::print("pi: {pi:10.7}, sqrt(2): { 1:10.6 }\n", NAME_ARGS(pi, rad2));
+    sx::print("pi: {:10.7e}, sqrt(2): {1:10.7E}\n", pi, rad2);
+
+
+    char c = 120;
+    int num = 612;
+    sx::print("{:6}\n", 42);                    // 打印 "    42"
+    sx::print("{:6}\n", 'x');                   // 打印 "     x"
+    sx::print("{:*<6}\n", 'x');                 // 打印 "x*****"
+    sx::print("{:*>6}\n", 'x');                 // 打印 "*****x"
+    sx::print("{:6d}\n", c);                    // 打印 "   120"
+    sx::print("{:6b}\n", true);                 // 打印 "  true"
+    sx::print("{:6o}\n", num);                  // 打印 " 01144"
+    sx::print("{0:6d}\n", num);                 // 打印 "   612"
+    sx::print("{num:6x}\n", NAME_ARGS(num));    // 打印 " 0x264"
+    sx::print("{ num:6X }\n", NAME_ARGS(num));  // 打印 " 0X264"
+    sx::print("{:p}\n", &num);                  // 打印 "0x******"
 }
 
 

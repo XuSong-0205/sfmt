@@ -2,10 +2,13 @@
 #define FORMAT_HPP
 
 #include <map>
+#include <cstdio>
+#include <cctype>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include <utility>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <functional>
@@ -233,12 +236,14 @@ public:
 
     void remove_prefix(size_type n) noexcept
     {
+        n = min(n, size_);
         data_ += n;
         size_ -= n;
     }
 
     void remove_subfix(size_type n) noexcept
     {
+        n = min(n, size_);
         size_ -= n;
     }
 
@@ -491,219 +496,631 @@ using init_list_type = format_args::init_list_type<T>;
 
 
 
+
 namespace detail
 {
 
-    
-inline char* num_buffer() noexcept
+
+template<typename CharT>
+class basic_format_parse
 {
-    constexpr size_type buffer_len = 32;
-    static char buffer[buffer_len]{ 0 };
+public:
+    using value_type = CharT;
+    using format_t = unsigned int;
 
-    return buffer;
-}
-
-
-inline size_t count_digits(unsigned int num) noexcept
-{
-	size_t count = 1;
-	for (;;)
-	{
-		if (num < 10)		return count;
-		if (num < 100)		return count + 1;
-		if (num < 1000)		return count + 2;
-		if (num < 10000)	return count + 3;
-		
-		num /= 10000u;
-		count += 4;
-	}
-
-	return count;
-}
-
-
-string_view num2str(int num)
-{
-	static constexpr const char digits[][2]{
-		{'0', '0'}, {'0', '1'}, {'0', '2'}, {'0', '3'}, {'0', '4'}, {'0', '5'}, {'0', '6'}, {'0', '7'}, {'0', '8'}, {'0', '9'},
-		{'1', '0'}, {'1', '1'}, {'1', '2'}, {'1', '3'}, {'1', '4'}, {'1', '5'}, {'1', '6'}, {'1', '7'}, {'1', '8'}, {'1', '9'},
-		{'2', '0'}, {'2', '1'}, {'2', '2'}, {'2', '3'}, {'2', '4'}, {'2', '5'}, {'2', '6'}, {'2', '7'}, {'2', '8'}, {'2', '9'},
-		{'3', '0'}, {'3', '1'}, {'3', '2'}, {'3', '3'}, {'3', '4'}, {'3', '5'}, {'3', '6'}, {'3', '7'}, {'3', '8'}, {'3', '9'},
-		{'4', '0'}, {'4', '1'}, {'4', '2'}, {'4', '3'}, {'4', '4'}, {'4', '5'}, {'4', '6'}, {'4', '7'}, {'4', '8'}, {'4', '9'},
-		{'5', '0'}, {'5', '1'}, {'5', '2'}, {'5', '3'}, {'5', '4'}, {'5', '5'}, {'5', '6'}, {'5', '7'}, {'5', '8'}, {'5', '9'},
-		{'6', '0'}, {'6', '1'}, {'6', '2'}, {'6', '3'}, {'6', '4'}, {'6', '5'}, {'6', '6'}, {'6', '7'}, {'6', '8'}, {'6', '9'},
-		{'7', '0'}, {'7', '1'}, {'7', '2'}, {'7', '3'}, {'7', '4'}, {'7', '5'}, {'7', '6'}, {'7', '7'}, {'7', '8'}, {'7', '9'},
-		{'8', '0'}, {'8', '1'}, {'8', '2'}, {'8', '3'}, {'8', '4'}, {'8', '5'}, {'8', '6'}, {'8', '7'}, {'8', '8'}, {'8', '9'},
-		{'9', '0'}, {'9', '1'}, {'9', '2'}, {'9', '3'}, {'9', '4'}, {'9', '5'}, {'9', '6'}, {'9', '7'}, {'9', '8'}, {'9', '9'},
-	};
-
-
-    if (num == 0)
+    // 填充与对齐(可选) 符号(可选) #(可选) 0(可选) 宽度(可选) 精度(可选) 类型(可选)		
+    enum class arg_format : format_t
     {
-        return { "0", 1 };
+        fmt_escape = 0,     // {{}}
+
+
+        fmt_fill_left,      // <    √
+        fmt_fill_right,     // >    √
+        // fmt_fill_center,    // ^    x
+
+
+        fmt_symb_add,       // +    √
+        fmt_symb_sub,       // -    √
+        fmt_symb_space,     // ' '  √
+
+
+        // fmt_well,           // #
+        // fmt_zero,           // 0
+
+
+        fmt_width,          // width
+        fmt_prec,           // precision
+        fmt_bool,           // bool
+
+        // fmt_type_b,         // 0b
+        // fmt_type_B,         // 0B
+        fmt_type_o,         // 0o5
+        fmt_type_d,         // 29
+        fmt_type_x,         // 0x
+        fmt_type_X,         // 0X
+        fmt_type_e,         // 0.7e2
+        fmt_type_E,         // 0.7E2
+        fmt_type_f,         // 3.14
+        // fmt_type_g,         // 3.141593
+        fmt_type_p,         // 0x12345678   pointer
+    };
+
+
+public:
+    explicit basic_format_parse(string_view fmt) noexcept 
+        : fmt_(fmt),
+          index_(0),
+          default_id_(0),
+          arg_fmts_(0),
+          fill_char_(' '),
+          width_(0),
+          precision_(0) { }
+
+
+
+
+    void clear() noexcept
+    {
+        index_ = 0;
+        arg_name_ = string_view();
+
+        arg_fmts_ = 0;
+        fill_char_ = ' ';
+        width_ = 0;
+        precision_ = 0;
     }
 
-
-	auto buff_ptr = num_buffer();
-	const auto buff = buff_ptr;
-	using unsigned_number_t = std::make_unsigned<int>::type;
-	unsigned_number_t abs_num = 0;
-    size_type len = 0;
-
-	if (num < 0)
-	{
-		*buff_ptr = '-';
-		abs_num = static_cast<unsigned_number_t>(-num);
-		len = 1 + count_digits(abs_num);
-	}
-	else
-	{
-		abs_num = static_cast<unsigned_number_t>(num);
-		len = count_digits(abs_num);
-	}
-    buff_ptr += len;
-
-
-	while (abs_num >= 100)
-	{
-		const auto index = abs_num % 100;
-		abs_num /= 100;
-		*(--buff_ptr) = digits[index][1];
-		*(--buff_ptr) = digits[index][0];
-	}
-
-	if (abs_num >= 10)
-	{
-		const auto index = abs_num;
-		*(--buff_ptr) = digits[index][1];
-		*(--buff_ptr) = digits[index][0];
-	}
-	else
-	{
-		*(--buff_ptr) = static_cast<char>('0' + abs_num);
-	}
-
-	return string_view(buff, len);
-}
-
-
-string_view num2str(float num)
-{
-    return std::to_string(num);
-}
-
-
-template<typename T, typename = void>
-struct is_num2str : std::false_type { };
-
-template<typename T>
-struct is_num2str<T, void_t<decltype(num2str(std::declval<T>()))>> : std::true_type { };
-
-
-
-
-
-inline constexpr bool is_space(char ch)noexcept
-{
-    return  ch == ' '  || 
-            ch == '\f' || 
-            ch == '\n' || 
-            ch == '\r' || 
-            ch == '\t';
-}
-
-
-inline void skip_space(string_view fmt, size_type& index)
-{
-    while (is_space(fmt[index]))
+    void set_index(size_type index) noexcept
     {
-        ++index;
+        index_ = index;
     }
-}
-
-
-string_view parse_name(string_view fmt, size_type& index)
-{
-    if (fmt[index++] != '{') 
-    {
-        throw parse_error("parse format name args begin error");
-    }
-
-    bool is_escape = false;
-    if (fmt[index] == '{')
-    {
-        ++index;
-        is_escape = true;
-    }
-    skip_space(fmt, index);
 
     
-    const auto str = fmt.data() + index;
-    size_type len = 0;
-    while (true)
+    size_type get_index() const noexcept
     {
-        char ch = fmt[index];
-        if (is_space(ch) || ch == '}') break;
+        return index_;
+    }
 
-        ++len;
-        ++index;
+    string_view get_arg_name() const noexcept 
+    {
+        return arg_name_;
+    }
+
+    format_t get_arg_fmts() const noexcept 
+    {
+        return arg_fmts_;
+    }
+
+    unsigned int get_width() const noexcept 
+    {
+        return width_;
+    }
+
+    unsigned int get_prec() const noexcept 
+    {
+        return precision_;
+    }
+
+    value_type get_fill_char() const noexcept 
+    {
+        return fill_char_;
     }
 
 
-    skip_space(fmt, index);    
-    if (fmt[index++] != '}')
+private:
+
+    string_view::value_type curr_char() 
     {
-        throw parse_error("parse format name args end error");
+        return fmt_[index_];
     }
 
-    if (is_escape)
+    string_view::value_type next_char() 
     {
-        if (fmt[index++] != '}')
+        return fmt_[index_++];
+    }
+
+    void forward_index() noexcept
+    {
+        ++index_;
+    }
+
+
+    static constexpr bool is_space(CharT ch) noexcept 
+    {
+        return  ch == ' '  || 
+                ch == '\f' || 
+                ch == '\n' || 
+                ch == '\r' || 
+                ch == '\t'; 
+    }
+
+    void skip_space()
+    {
+        while (is_space(curr_char()))
         {
-            throw parse_error("parse format miss escape character '}'");
+            forward_index();
         }
     }
 
-    return { str, len };
-}
-
-
-void format_impl(std::ostream& os, string_view fmt, const format_args& args)
-{
-    constexpr size_type npos = string_view::npos;
-    const auto& args_map = args.get_args();
-    size_type index = 0;
-    size_type default_id = 0;
-    while (true)
+    void add_arg_format(arg_format arg_fmt) noexcept
     {
-        auto pos = fmt.find('{', index);
-        if (pos == npos) break;
-        os << fmt.substr(index, pos - index);
+        arg_fmts_ |= 1 << static_cast<format_t>(arg_fmt);
+    }
+
+
+public:
+
+    void parse()
+    {
+        if (next_char() != '{') 
+        {
+            throw parse_error(format("parse format begin error, \"{}\" not '{}' begin\n",
+                                fmt_.substr(index_, 10), '{'));
+        }
+
+        parse_arg();
+
+        if (next_char() != '}')
+        {
+            throw parse_error(format("parse format end error, '{}' not '}' end\n", curr_char()));
+        }
+    }
+
+
+private:
+
+    void parse_arg()
+    {
+        bool is_escape = false;
+        if (curr_char() == '{')
+        {
+            forward_index();
+            is_escape = true;
+        }
+        skip_space();
+
+
+        // parse arg name
+        parse_name();
+
+        // parse arg format
+        parse_format();
+
+
+        skip_space();
+        if (is_escape)
+        {
+            if (next_char() != '}')
+            {
+                throw parse_error("parse format miss escape character '}'");
+            }
+
+            add_arg_format(arg_format::fmt_escape);
+        }
+    }
+
+
+    void parse_name()
+    {
+        const auto name = fmt_.data() + index_;
+        size_type name_len = 0;
+        while (true)
+        {
+            char ch = curr_char();
+            if (is_space(ch) || ch == ':' || ch == '}') break;
+
+            ++name_len;
+            forward_index();
+        }
+
+        if (name_len > 0)
+        {
+            arg_name_ = string_view(name, name_len);
+        }
+        else
+        {
+            arg_name_ = format_args::num_arg_id(default_id_++);
+        }
+    }
+
+
+    void parse_format()
+    {
+        if (curr_char() != ':')
+        {
+            return;
+        }
+
+        // skip :
+        forward_index();
+
+        // parse c</>/^
+        parse_fill();
+
+        // parse +/-/' '/#/0
+        parse_symb();
+
+        // parse width
+        parse_width();
+
+        // parse precision
+        parse_prec();
+
+        // parse b/B/o/d/x/X/e/E/f/F/g/G/p/P/s
+        parse_type();
+
+    }
+
+
+    void parse_fill()
+    {
+        bool has_align = false;
+        auto curr = curr_char();
+        auto align_fmt = curr;
+        if (curr == '<' || curr == '>' || curr == '^')
+        {
+            fill_char_ = ' ';
+            has_align = true;
+
+            forward_index();
+        }
+        else if (curr != '}')
+        {
+            auto next = fmt_[index_ + 1];
+            if (next == '<' || next == '>')
+            {
+                fill_char_ = curr;
+                has_align = true;
+                align_fmt = next;
+
+                forward_index();
+                forward_index();
+            }
+        }
+
+        if (has_align)
+        {
+            if (align_fmt == '<')
+            {
+                add_arg_format(arg_format::fmt_fill_left);
+            }
+            else if (align_fmt == '>')
+            {
+                add_arg_format(arg_format::fmt_fill_right);
+            }
+        }
+
+    }
+
+
+    void parse_symb()
+    {
+        switch (curr_char())
+        {
+        case '+':
+            add_arg_format(arg_format::fmt_symb_add);
+            forward_index();
+            break;
+
+        case '-':
+            add_arg_format(arg_format::fmt_symb_sub);
+            forward_index();
+            break;
+
+        case ' ':
+            add_arg_format(arg_format::fmt_symb_space);
+            forward_index();
+            break;
+        }
+    }
+
+
+    void parse_width()
+    {
+        unsigned int width = 0;
+        while (isdigit(curr_char()))
+        {
+            width = width * 10 + (curr_char() - '0');
+            forward_index();
+        }
+
+        if (width > 0)
+        {
+            width_ = width;
+            add_arg_format(arg_format::fmt_width);
+        }
+    }
+
+
+    void parse_prec()
+    {
+        if (curr_char() == '.')
+        {
+            forward_index();
+
+            unsigned int prec = 0;
+            while (isdigit(curr_char()))
+            {
+                prec = prec * 10 + (curr_char() - '0');
+                forward_index();
+            }
+
+            if (prec > 0)
+            {
+                precision_ = prec;
+                add_arg_format(arg_format::fmt_prec);
+            }
+        }
+    }
+
+
+    void parse_type()
+    {
+        switch (curr_char())
+        {
+        case 'b':
+            add_arg_format(arg_format::fmt_bool);
+            forward_index();
+            break;
+
+        case 'o':
+            add_arg_format(arg_format::fmt_type_o);
+            forward_index();
+            break;
+
+        case 'd':
+            add_arg_format(arg_format::fmt_type_d);
+            forward_index();
+            break;
+
+        case 'x':
+            add_arg_format(arg_format::fmt_type_x);
+            forward_index();
+            break;
+
+        case 'X':
+            add_arg_format(arg_format::fmt_type_X);
+            forward_index();
+            break;
+
+        case 'e':
+            add_arg_format(arg_format::fmt_type_e);
+            forward_index();
+            break;
+
+        case 'E':
+            add_arg_format(arg_format::fmt_type_E);
+            forward_index();
+            break;
+
+        case 'f':
+        case 'F':
+            add_arg_format(arg_format::fmt_type_f);
+            forward_index();
+            break;
+
+        case 'p':
+            add_arg_format(arg_format::fmt_type_p);
+            forward_index();
+            break;
+        }
+    }
+
+
+private:
+    string_view     fmt_;
+    size_type       index_;
+
+    size_type       default_id_;
+    string_view     arg_name_;
+
+    format_t        arg_fmts_;
+    value_type      fill_char_;
+    unsigned int    width_;
+    unsigned int    precision_;
+};
+
+using format_parse  = basic_format_parse<char>;
+using format_t      = format_parse::format_t;
+using arg_format    = format_parse::arg_format;
+
+
+
+
+template<typename CharT>
+class basic_formatter
+{
+public:
+    basic_formatter(string_view fmt, const format_args& args) noexcept 
+        : fmt_(fmt), args_(args) { }
+
+
+
+    string_type to_string() const
+    {
+        std::ostringstream oss;
+        format_impl(oss);
+        return oss.str();
+    }
+
+    void to_ostream(std::ostream& os) const
+    {
+        format_impl(os);
+    }
+
+    void to_file(std::FILE* file) const
+    {
+        // todo
+    }
+
+
+private:
+    void format_impl(std::ostream& os) const
+    {
+        constexpr size_type npos = string_view::npos;
+        const auto& args_map = args_.get_args();
+        size_type index = 0;
+        format_parse fmt_parse(fmt_);
+
+        while (true)
+        {
+            auto pos = fmt_.find('{', index);
+            if (pos == npos) break;
+            os << fmt_.substr(index, pos - index);
+            
+            fmt_parse.clear();
+            fmt_parse.set_index(pos);
+            fmt_parse.parse();
+
+            auto arg_name = fmt_parse.get_arg_name();
+            auto arg_iter = args_map.find(arg_name);
+            if (arg_iter == args_map.end())
+            {
+                throw arg_error(format("arg name({}) not found", arg_name));
+            }
+
+            to_format(os, fmt_parse, *arg_iter);
+
+            index = fmt_parse.get_index();
+        }
+
+        os << fmt_.substr(index);
+    }
+
+
+    bool has_arg_fmt(format_t fmts, arg_format arg_fmt) const
+    {
+        return (fmts & (1 << static_cast<format_t>(arg_fmt))) != 0;
+    }
+
+
+    void to_format(std::ostream& os, const format_parse& fmt_parse, const arg_type& arg) const
+    {
+        auto fmts = fmt_parse.get_arg_fmts();
+
+        if (has_arg_fmt(fmts, arg_format::fmt_escape))
+        {
+            os.write("{", 1);
+        }
+
+
+        if (has_arg_fmt(fmts, arg_format::fmt_fill_left))
+        {
+            os << std::setfill(fmt_parse.get_fill_char()) << std::left;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_fill_right))
+        {
+            os << std::setfill(fmt_parse.get_fill_char()) << std::right;
+        }
+
+
+        if (has_arg_fmt(fmts, arg_format::fmt_symb_add))
+        {
+            os << std::showpos;
+        }
         
-        auto arg_name = parse_name(fmt, pos);
-        if (arg_name.empty())
+        if (has_arg_fmt(fmts, arg_format::fmt_symb_sub))
         {
-            arg_name = format_args::num_arg_id(default_id++);
+            os << std::noshowpos;
         }
 
-        auto arg_iter = args_map.find(arg_name);
-        if (arg_iter == args_map.end())
+        if (has_arg_fmt(fmts, arg_format::fmt_symb_space))
         {
-            throw arg_error(format("arg name({}) not found", arg_name));
+            // todo
+            os << std::noshowpos;
         }
 
-        arg_iter->second(os);
-        index = pos;
+
+
+        if (has_arg_fmt(fmts, arg_format::fmt_width))
+        {
+            os << std::setfill(fmt_parse.get_fill_char()) <<  std::setw(fmt_parse.get_width());
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_prec))
+        {
+            os << std::setprecision(fmt_parse.get_prec());
+        }
+
+
+        if (has_arg_fmt(fmts, arg_format::fmt_bool))
+        {
+            os << std::boolalpha;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_o))
+        {
+            os << std::showbase << std::oct;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_d))
+        {
+            os << std::showbase << std::dec;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_x))
+        {
+            os << std::showbase << std::hex << std::nouppercase;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_X))
+        {
+            os << std::showbase << std::hex << std::uppercase;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_e))
+        {
+            os << std::showbase << std::scientific  << std::nouppercase;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_E))
+        {
+            os << std::showbase << std::scientific << std::uppercase;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_f))
+        {
+            os << std::showbase << std::fixed;
+        }
+
+        if (has_arg_fmt(fmts, arg_format::fmt_type_p))
+        {
+            os << std::showbase << std::hex  << std::nouppercase;
+        }
+
+
+        arg.second(os);
+
+
+        if (has_arg_fmt(fmts, arg_format::fmt_escape))
+        {
+            os.write("}", 1);
+        }
+
     }
-    os << fmt.substr(index);
+
+
+private:
+    string_view         fmt_;
+    const format_args&  args_;
+
+};
+
+
+using formatter = basic_formatter<char>;
+
+
+
+
+static string_type vformat(string_view fmt, const format_args& args)
+{
+    return formatter(fmt, args).to_string();
 }
 
-
-string_type format_impl(string_view fmt, const format_args& args)
+static void vformat(std::ostream& os, string_view fmt, const format_args& args)
 {
-    std::ostringstream oss;
-    format_impl(oss, fmt, args);
-    return oss.str();
+    formatter(fmt, args).to_ostream(os);
 }
 
 
@@ -720,39 +1137,39 @@ string_type format_impl(string_view fmt, const format_args& args)
 template<typename... Args>
 detail::string_type format(detail::string_view fmt, Args&&... args)
 {
-    return detail::format_impl(fmt, detail::format_args(std::forward<Args>(args)...));
+    return detail::vformat(fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 detail::string_type format(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    return detail::format_impl(fmt, detail::format_args(name_args_list));
+    return detail::vformat(fmt, detail::format_args(name_args_list));
 }
 
 
 template<typename... Args>
 void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
-    detail::format_impl(os, fmt, detail::format_args(std::forward<Args>(args)...));
+    detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
 void print(detail::string_view fmt, Args&&... args)
 {
-    detail::format_impl(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
+    detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 void print(std::ostream& os, detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    detail::format_impl(os, fmt, detail::format_args(name_args_list));
+    detail::vformat(os, fmt, detail::format_args(name_args_list));
 }
 
 
 void print(detail::string_view fmt, detail::init_list_type<detail::arg_type> name_args_list)
 {
-    detail::format_impl(std::cout, fmt, detail::format_args(name_args_list));
+    detail::vformat(std::cout, fmt, detail::format_args(name_args_list));
 }
 
 
