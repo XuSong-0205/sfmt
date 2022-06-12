@@ -186,6 +186,20 @@ void test2()
     sx::print("{num:6x}\n", NAME_ARGS(num));    // 打印 " 0x264"
     sx::print("{ num:6X }\n", NAME_ARGS(num));  // 打印 " 0X264"
     sx::print("{:p}\n", &num);                  // 打印 "0x******"
+    
+    using true_t = std::true_type;
+    using false_t = std::false_type;
+    sx::detail::conjunction_t<true_t, true_t, true_t, true_t>::value;
+    sx::detail::conjunction_t<>::value;
+    sx::detail::conjunction_t<true_t>::value;
+    sx::detail::conjunction_t<true_t, true_t>::value;
+    sx::detail::conjunction_t<true_t, true_t, true_t>::value;
+    sx::detail::conjunction_t<true_t, false_t, int>::value;
+
+    sx::detail::is_arg_type<int>::value;
+    sx::detail::is_arg_type<decltype(NAME_ARG("n", 1))>::value;
+
+
 }
 
 
