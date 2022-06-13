@@ -24,7 +24,7 @@ const auto get_now = []()
 
 const  std::string& get_path()
 {
-    static const std::string path = R"(E:\VScode\code\cpp_code\Test\test_format\data\)";
+    static const std::string path = R"(F:\code\cpp\test\test2\data\)";
     return path;
 }
 
@@ -139,17 +139,14 @@ void test1()
 
 void test2()
 {
-    // 下一步优化：
-    // 1. to_string 优化                x
-    // 2. string 优化为 string_view     √
-    // 3. 将输出的流实现优化为其他实现？（待定）
+    // 问题/BUG:
+    // x. 格式化串不能只包含单个 '{' 字符
 
+    // 下一步优化：
+    // x. 将输出的流实现优化为其他实现？（待定）
 
     // 增加功能：
-    // 1. 增加浮点数的可选格式化输出 {name:x.y}     √
-    // 2. 增加可选的格式化对齐? {name:<10}          √
-    // 3. 增加对 bool, float, 指针 的可选格式化标识? {name:p|b|f|e}     指针/bool/浮点格式/科学计数法格式   部分
-    // x. 增加对 unicode 字符的支持?(wchar_t)       x
+    // x. 增加对 unicode 字符的支持?(wchar_t)
 
 
     const auto func_name = "test2";
@@ -163,7 +160,6 @@ void test2()
 
     sx::print("str: {str}, tmp: {tmp}\n", NAME_ARGS(str, tmp));
     sx::print("嵌套测试 str: {{ str }}\n", NAME_ARGS(str));
-
     sx::print("格式化输出测试: \n");
     sx::print("left: {:s<6}, right: {:x>6}\n", 0, 1, 2);
 
@@ -187,18 +183,8 @@ void test2()
     sx::print("{ num:6X }\n", NAME_ARGS(num));  // 打印 " 0X264"
     sx::print("{:p}\n", &num);                  // 打印 "0x******"
     
-    using true_t = std::true_type;
-    using false_t = std::false_type;
-    sx::detail::conjunction_t<true_t, true_t, true_t, true_t>::value;
-    sx::detail::conjunction_t<>::value;
-    sx::detail::conjunction_t<true_t>::value;
-    sx::detail::conjunction_t<true_t, true_t>::value;
-    sx::detail::conjunction_t<true_t, true_t, true_t>::value;
-    sx::detail::conjunction_t<true_t, false_t, int>::value;
-
-    sx::detail::is_arg_type<int>::value;
-    sx::detail::is_arg_type<decltype(NAME_ARG("n", 1))>::value;
-
+    std::string fmt = "起名测试: {test:@<20}, 名字参数: {num}, 默认位置参数: {}, 位置参数: {1}\n";
+    sx::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
 
 }
 
@@ -216,6 +202,10 @@ int main()
 {
     add_func();
     get_funcs().back()();
+    // for (auto&& func : get_funcs())
+    // {
+    //     func();
+    // }
 
     std::cout << "main end...\n";
     return 0;

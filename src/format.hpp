@@ -1,23 +1,26 @@
 #ifndef FORMAT_HPP
 #define FORMAT_HPP
 
-#include <map>
-#include <cstdio>
-#include <cctype>
-#include <string>
-#include <cstring>
-#include <sstream>
-#include <utility>
-#include <iomanip>
-#include <iostream>
-#include <stdexcept>
-#include <functional>
-#include <type_traits>
-#include <initializer_list>
+#include <map>              // map
+#include <cstdio>           // FILE
+#include <cctype>           // isdigit
+#include <string>           // string
+#include <sstream>          // ostringstream
+#include <utility>          // pair
+#include <iomanip>          // setw
+#include <iostream>         // ostream
+#include <stdexcept>        // runtime_error
+#include <functional>       // function
+#include <type_traits>      // false_type, true_type, integral_constant...
+#include <initializer_list> // initializer_list
 
 
 
 namespace sx
+{
+
+// macro function
+namespace detail
 {
 
 #define ARG(x)											        x
@@ -40,15 +43,15 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
             10,  9,  8,  7,  6,  5,  4,  3,  2,  1))            \
 
 
-#define MAX_ARGS_COUNT          64
+#define MAX_ARGS_COUNT              64
 
 
-#define __STR(s)                #s
-#define STR(s)                  __STR(s)
+#define __STR(s)                    #s
+#define STR(s)                      __STR(s)
 
 
-#define __CAT(a, b)             a ## b
-#define CAT(a, b)               __CAT(a, b)
+#define __CAT(a, b)                 a ## b
+#define CAT(a, b)                   __CAT(a, b)
 
 
 
@@ -124,12 +127,14 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 #define MAX_UNPACK_LEN              MAX_ARGS_COUNT
 
 
-#define TO_STRING(...)              UNPACK(STR, __VA_ARGS__)
-#define MAKE_STR(...)               UNPACK(STR, __VA_ARGS__)
+}   // namespace detail
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// mpl
 namespace detail
 {
 
@@ -155,6 +160,9 @@ template<typename T>
 using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 
 
+template<bool B>
+using bool_constant = std::integral_constant<bool, B>;
+
 
 
 template<typename... Bn>
@@ -171,7 +179,27 @@ struct __and<B1, B2, Bn...> : std::conditional<B1::value, __and<B2, Bn...>, B1>:
 
 
 template<typename... Bn>
+struct __or;
+
+template<>
+struct __or<> : std::false_type { };
+
+template<typename B1>
+struct __or<B1> : B1 { };
+
+template<typename B1, typename B2, typename... Bn>
+struct __or<B1, B2, Bn...> : std::conditional<B1::value, B1, __or<B2, Bn...>>::type { };
+
+
+
+template<typename... Bn>
 using conjunction_t = typename __and<Bn...>::type;
+
+
+template<typename... Bn>
+using disjunction_t = typename __or<Bn...>::type;
+
+
 
 
 template<typename T, T... Ints>
@@ -220,7 +248,6 @@ struct __make_int_seq<1> : __int_seq<0> { };
 
 
 
-
 template<typename T, T N>
 using make_integer_sequence = __invoke<__make_int_seq<N>>;
 
@@ -230,7 +257,14 @@ using make_index_sequence = __invoke<__make_int_seq<N>>;
 
 
 
+}   // namespace detail
 
+
+
+
+// function template
+namespace detail
+{
 
 template<typename T>
 inline constexpr auto min(const T& a, const T& b) noexcept(noexcept(a < b)) -> decltype(a < b, std::declval<const T&>())
@@ -248,8 +282,9 @@ inline constexpr auto max(const T& a, const T& b) noexcept(noexcept(a < b)) -> d
 }   // namespace detail
 
 
-////////////////////////////////////////////////////////////////////////////////
 
+
+// basic_string_view
 namespace detail
 {
 
@@ -384,8 +419,9 @@ struct is_basic_string_view<basic_string_view<CharT>> : std::true_type { };
 }   // namespace detail
 
 
-////////////////////////////////////////////////////////////////////////////////
 
+
+// type alias
 namespace detail
 {
 
@@ -400,19 +436,40 @@ using arg_type          = std::pair<string_view, arg_value_type>;
 
 
 template<typename T>
-struct is_arg_type : std::integral_constant<bool, std::is_same<remove_cvref_t<T>, arg_type>::value> { };
+struct is_arg_type : bool_constant<std::is_same<remove_cvref_t<T>, arg_type>::value> { };
+
+
+template<typename... Args>
+struct is_num_args_pack : bool_constant<!disjunction_t<is_arg_type<Args>...>::value> { };
+
+
+template<typename... Args>
+struct is_name_args_pack : bool_constant<conjunction_t<is_arg_type<Args>...>::value> { };
+
+
+
+#define __TEMPLATE_NUM_ARGS_PACK_CHECK                                          \
+        detail::enable_if_t<detail::is_num_args_pack<Args...>::value, int>
+
+
+#define __TEMPLATE_NAME_ARGS_PACK_CHECK                                         \
+        detail::enable_if_t<bool(sizeof...(Args) > 0), int> = 0,                \
+        detail::enable_if_t<detail::is_name_args_pack<Args...>::value, int>
 
 
 }   // namespace detail
 
 
 
-template<typename... Args>
+
+// forward declaration
+template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
 detail::string_type format(detail::string_view fmt, Args&&... args);
 
-////////////////////////////////////////////////////////////////////////////////
 
 
+
+// exception
 namespace detail
 {
 
@@ -453,9 +510,10 @@ public:
 
 
 
+
+// basic_format_args
 namespace detail
 {
-
     
 template<typename CharT>
 class basic_format_args
@@ -487,8 +545,8 @@ public:
 
 
 
-    template<typename... Args,
-            detail::enable_if_t<detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+    template<typename... Args, 
+            detail::enable_if_t<detail::is_name_args_pack<Args...>::value, int> = 0>
     explicit basic_format_args(Args&&... args)
     {
         make_name_args({ std::forward<Args>(args)... });
@@ -576,14 +634,17 @@ private:
 using format_args    = basic_format_args<char>;
 
 
+#define __NAME_ARG(x)               sx::detail::format_args::name_arg(STR(x), x)
+
+
 }   // namespace detail
 
 
 
 
+// basic_format_parse
 namespace detail
 {
-
 
 template<typename CharT>
 class basic_format_parse
@@ -598,22 +659,19 @@ public:
         fmt_escape = 0,     // {{}}
 
 
-        fmt_fill_left,      // <    √
-        fmt_fill_right,     // >    √
-        // fmt_fill_center,    // ^    x
+        fmt_fill_left,      // <
+        fmt_fill_right,     // >
 
 
-        fmt_symb_add,       // +    √
-        fmt_symb_sub,       // -    √
-        // fmt_symb_space,     // ' '  x
+        fmt_symb_add,       // +
+        fmt_symb_sub,       // -
 
 
         fmt_width,          // width
         fmt_prec,           // precision
         fmt_bool,           // bool
 
-        // fmt_type_b,         // 0b
-        // fmt_type_B,         // 0B
+
         fmt_type_o,         // 0o5
         fmt_type_d,         // 29
         fmt_type_x,         // 0x
@@ -621,7 +679,7 @@ public:
         fmt_type_e,         // 0.7e2
         fmt_type_E,         // 0.7E2
         fmt_type_f,         // 3.14
-        fmt_type_p,         // 0x12345678   pointer
+        fmt_type_p,         // 0x12345678
     };
 
 
@@ -688,7 +746,7 @@ public:
 
 private:
 
-    string_view::value_type curr_char() 
+    string_view::value_type curr_char() const
     {
         return fmt_[index_];
     }
@@ -825,7 +883,7 @@ private:
         // parse precision
         parse_prec();
 
-        // parse b/B/o/d/x/X/e/E/f/F/g/G/p/P/s
+        // parse o/d/x/X/e/E/f/F/p
         parse_type();
 
     }
@@ -836,7 +894,7 @@ private:
         bool has_align = false;
         auto curr = curr_char();
         auto align_fmt = curr;
-        if (curr == '<' || curr == '>' || curr == '^')
+        if (curr == '<' || curr == '>')
         {
             fill_char_ = ' ';
             has_align = true;
@@ -1005,9 +1063,9 @@ using arg_format    = format_parse::arg_format;
 
 
 
+// basic_formatter
 namespace detail
 {
-
 
 template<typename CharT>
 class basic_formatter
@@ -1157,7 +1215,7 @@ private:
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_f))
         {
-            os << std::showbase << std::fixed;
+            os << std::showbase << std::showbase << std::fixed;
         }
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_p))
@@ -1167,6 +1225,7 @@ private:
 
 
         arg.second(os);
+        os.unsetf(os.flags());
 
 
         if (has_arg_fmt(fmts, arg_format::fmt_escape))
@@ -1192,6 +1251,8 @@ using formatter = basic_formatter<char>;
 
 
 
+
+// vformat
 namespace detail
 {
 
@@ -1205,81 +1266,70 @@ static void vformat(std::ostream& os, string_view fmt, const format_args& args)
     formatter(fmt, args).to_ostream(os);
 }
 
-    
 
 }   // namespace detail
 
 
+
 ////////////////////////////////////////////////////////////////////////////////
 
-#define NAME_ARG(name, x)           sx::detail::format_args::name_arg(name, x)
+// public interface
 
-#define __NAME_ARG(x)               sx::detail::format_args::name_arg(STR(x), x)
+#define NAME_ARG(name, x)           sx::detail::format_args::name_arg(name, x)
 #define NAME_ARGS(...)              UNPACK(__NAME_ARG, __VA_ARGS__)
 
 
 
-template<typename... Args,
-        detail::enable_if_t<!detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+
+template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK>
 detail::string_type format(detail::string_view fmt, Args&&... args)
 {
     return detail::vformat(fmt,
-            detail::format_args(
-                detail::make_index_sequence<sizeof...(args)>{},
-                std::forward_as_tuple(std::forward<Args>(args)...)
-        )
+        detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
+        std::forward_as_tuple(std::forward<Args>(args)...))
     );
 }
 
 
-template<typename... Args,
-        detail::enable_if_t<bool(sizeof...(Args) > 0), int> = 0,
-        detail::enable_if_t<detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
 detail::string_type format(detail::string_view fmt, Args&&... args)
 {
     return detail::vformat(fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
-template<typename... Args,
-        detail::enable_if_t<!detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
 void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
-    return detail::vformat(os, fmt,
+    detail::vformat(os, fmt,
         detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
         std::forward_as_tuple(std::forward<Args>(args)...))
     );
 }
 
 
-template<typename... Args,
-        detail::enable_if_t<!detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
 void print(detail::string_view fmt, Args&&... args)
 {
-    return detail::vformat(std::cout, fmt,
+    detail::vformat(std::cout, fmt,
         detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
         std::forward_as_tuple(std::forward<Args>(args)...))
     );
 }
 
 
-template<typename... Args,
-        detail::enable_if_t<bool(sizeof...(Args) > 0), int> = 0,
-        detail::enable_if_t<detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
 void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
     detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
-template<typename... Args,
-        detail::enable_if_t<bool(sizeof...(Args) > 0), int> = 0,
-        detail::enable_if_t<detail::conjunction_t<detail::is_arg_type<Args>...>::value, int> = 0>
+template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
 void print(detail::string_view fmt, Args&&... args)
 {
     detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
 }
-
 
 
 }   // namespace sx
