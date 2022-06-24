@@ -17,7 +17,7 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 #   define SFMT_CPLUSPLUS   __cplusplus
-#elif defined(_MSCV_VER)
+#elif defined(_MSC_VER)
 #   define SFMT_CPLUSPLUS   _MSVC_LANG
 #endif
 
