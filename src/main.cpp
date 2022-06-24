@@ -2,6 +2,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <fstream>
 #include <chrono>
@@ -185,6 +186,9 @@ void test2()
     
     std::string fmt = "起名测试: {test:@<20}, 名字参数: {num}, 默认位置参数: {}, 位置参数: {1}\n";
     sx::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
+
+    using namespace std::string_view_literals;
+    sx::print("{} {} test\n"sv, "sfmt", "std::string_view");
 
 }
 

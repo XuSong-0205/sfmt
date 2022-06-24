@@ -15,6 +15,20 @@
 #include <initializer_list> // initializer_list
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#   define SFMT_CPLUSPLUS   __cplusplus
+#elif defined(_MSCV_VER)
+#   define SFMT_CPLUSPLUS   _MSVC_LANG
+#endif
+
+
+#if SFMT_CPLUSPLUS >= 201703L
+#   include <string_view>   // std::string_view
+#   define __HAS_STD_STRING_VIEW    1
+#endif
+
+
+
 
 namespace sx
 {
@@ -314,8 +328,13 @@ public:
         : data_(str), size_(char_traits::length(str)) { } 
 
     template<typename Traits, typename Alloc>
-    basic_string_view(const std::basic_string<CharT, Traits, Alloc>& str)
+    basic_string_view(const std::basic_string<CharT, Traits, Alloc>& str) noexcept
         : data_(str.data()), size_(str.size()) { }
+
+#ifdef __HAS_STD_STRING_VIEW
+    basic_string_view(std::basic_string_view<CharT> str) noexcept
+        : data_(str.data()), size_(str.size()) { }
+#endif // __HAS_STD_STRING_VIEW
 
 
 
