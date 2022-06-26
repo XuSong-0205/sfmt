@@ -549,9 +549,7 @@ public:
     }
 
 
-
-    template<typename... Args, 
-            detail::enable_if_t<detail::is_name_args_pack<Args...>::value, int> = 0>
+    template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
     explicit basic_format_args(Args&&... args)
     {
         make_name_args({ std::forward<Args>(args)... });
