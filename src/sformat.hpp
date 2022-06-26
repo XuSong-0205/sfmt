@@ -30,7 +30,7 @@
 
 
 
-namespace sx
+namespace sfmt
 {
 
 // macro function
@@ -637,7 +637,7 @@ private:
 using format_args    = basic_format_args<char>;
 
 
-#define __NAME_ARG(x)               sx::detail::format_args::name_arg(STR(x), x)
+#define __NAME_ARG(x)               sfmt::detail::format_args::name_arg(STR(x), x)
 
 
 }   // namespace detail
@@ -1277,7 +1277,7 @@ static void vformat(std::ostream& os, string_view fmt, const format_args& args)
 
 // public interface
 
-#define NAME_ARG(name, x)           sx::detail::format_args::name_arg(name, x)
+#define NAME_ARG(name, x)           sfmt::detail::format_args::name_arg(name, x)
 #define NAME_ARGS(...)              UNPACK(__NAME_ARG, __VA_ARGS__)
 
 
@@ -1334,6 +1334,6 @@ void print(detail::string_view fmt, Args&&... args)
 }
 
 
-}   // namespace sx
+}   // namespace sfmt
 
 #endif // SFORMAT_HPP
