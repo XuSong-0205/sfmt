@@ -6,7 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include <chrono>
-#include "sformat.hpp"
+#include "../include/sformat.hpp"
 using namespace std::chrono;
 
 
