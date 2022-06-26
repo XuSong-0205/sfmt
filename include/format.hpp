@@ -1,5 +1,5 @@
-#ifndef SFORMAT_HPP
-#define SFORMAT_HPP
+#ifndef FORMAT_HPP
+#define FORMAT_HPP
 
 #include <map>              // map
 #include <cstdio>           // FILE
@@ -1336,4 +1336,4 @@ void print(detail::string_view fmt, Args&&... args)
 
 }   // namespace sfmt
 
-#endif // SFORMAT_HPP
+#endif // FORMAT_HPP
