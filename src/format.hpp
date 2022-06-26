@@ -152,20 +152,6 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 namespace detail
 {
 
-template<typename T>
-struct type_identity { using type = T; };
-
-template<typename T>
-using type_identity_t = typename type_identity<T>::type;
-
-
-template<typename... Ts>
-struct make_void : type_identity<void> { };
-
-template<typename... Ts>
-using void_t = typename make_void<Ts...>::type;
-
-
 template<bool B, typename T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 
@@ -638,8 +624,8 @@ private:
         size_type i = 0;
         for (auto&& name_val : name_args_list)
         {
-            args_.emplace(num_arg_id(i++), name_val.second);      // num  arg
-            args_.emplace(std::move(name_val));                   // name arg
+            args_.emplace(num_arg_id(i++), name_val.second);    // num  arg
+            args_.emplace(std::move(name_val));                 // name arg
         }
     }
 
@@ -671,8 +657,7 @@ class basic_format_parse
 public:
     using value_type = CharT;
     using format_t = unsigned int;
-
-    // 填充与对齐(可选) 符号(可选) 宽度(可选) 精度(可选) 类型(可选)		
+	
     enum class arg_format : format_t
     {
         fmt_escape = 0,     // {{}}
