@@ -1,5 +1,5 @@
-#ifndef FORMAT_HPP
-#define FORMAT_HPP
+#ifndef SFORMAT_HPP
+#define SFORMAT_HPP
 
 #include <map>              // map
 #include <cstdio>           // FILE
@@ -1336,4 +1336,4 @@ void print(detail::string_view fmt, Args&&... args)
 
 }   // namespace sx
 
-#endif // FORMAT_HPP
+#endif // SFORMAT_HPP
