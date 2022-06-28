@@ -374,7 +374,6 @@ public:
 
 
 public:
-
     friend std::ostream& operator<<(std::ostream& os, basic_string_view str)
     {
         os.write(str.data(), str.size());
@@ -444,32 +443,8 @@ template<typename T>
 struct is_arg_type : bool_constant<std::is_same<remove_cvref_t<T>, arg_type>::value> { };
 
 
-template<typename... Args>
-struct is_num_args_pack : bool_constant<!disjunction_t<is_arg_type<Args>...>::value> { };
-
-
-template<typename... Args>
-struct is_name_args_pack : bool_constant<conjunction_t<is_arg_type<Args>...>::value> { };
-
-
-
-#define __TEMPLATE_NUM_ARGS_PACK_CHECK                                          \
-        detail::enable_if_t<detail::is_num_args_pack<Args...>::value, int>
-
-
-#define __TEMPLATE_NAME_ARGS_PACK_CHECK                                         \
-        detail::enable_if_t<bool(sizeof...(Args) > 0), int> = 0,                \
-        detail::enable_if_t<detail::is_name_args_pack<Args...>::value, int>
-
 
 }   // namespace detail
-
-
-
-
-// forward declaration
-template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
-detail::string_type format(detail::string_view fmt, Args&&... args);
 
 
 
@@ -516,6 +491,13 @@ public:
 
 
 
+// forward declaration
+template<typename... Args>
+inline detail::string_type format(detail::string_view fmt, Args&&... args);
+
+
+
+
 // basic_format_args
 namespace detail
 {
@@ -545,19 +527,10 @@ public:
     template<std::size_t... Idxs, typename... Args>
     basic_format_args(indedx_sequence<Idxs...> index_seq, std::tuple<Args...>&& tup)
     {
-        make_num_args({ num_arg(Idxs, std::get<Idxs>(tup))... });
+        make_args({ __arg<Idxs>(std::get<Idxs>(tup), is_arg_type<Args>{})... });
     }
-
-
-    template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
-    explicit basic_format_args(Args&&... args)
-    {
-        make_name_args({ std::forward<Args>(args)... });
-    }
-
 
 public:
-
     const map_type<string_view, arg_value_type>& get_args() const noexcept
     {
         return args_;
@@ -586,43 +559,49 @@ public:
 
     
     template<typename T>
-    static arg_value_type arg_value(const T& val)  noexcept
+    static arg_value_type arg_value(const T& val) noexcept
     {
         return [&val](std::ostream& os) { os << val; };
     }
 
 
     template<typename T>
-    static arg_type num_arg(size_type num, T&& val)  noexcept
+    static arg_type num_arg(size_type num, T&& val) noexcept
     {
         return { num_arg_id(num), arg_value(std::forward<T>(val)) };
     }
 
 
     template<typename T>
-    static arg_type name_arg(const CharT* name, T&& val) noexcept
+    static arg_type name_arg(string_view name, T&& val) noexcept
     {
         return { name, arg_value(std::forward<T>(val)) };
     }
 
 
 private:
-
-    void make_num_args(init_list_type<arg_type> num_args_list)
+    template<std::size_t Idx, typename T>
+    arg_type __arg(T&& val, std::false_type)
     {
-        for (auto&& num_val : num_args_list)
-        {
-            args_.emplace(std::move(num_val));                  // name arg
-        }
+        return num_arg(Idx, std::forward<T>(val));
     }
 
+    template<std::size_t Idx, typename T>
+    arg_type __arg(T&& val, std::true_type)
+    {
+        return std::move(val);
+    }
 
-    void make_name_args(init_list_type<arg_type> name_args_list)
+    void make_args(init_list_type<arg_type> args_list)
     {
         size_type i = 0;
-        for (auto&& name_val : name_args_list)
+        for (auto&& name_val : args_list)
         {
-            args_.emplace(num_arg_id(i++), name_val.second);    // num  arg
+            auto arg_id = num_arg_id(i++);
+            if (name_val.first != arg_id)
+            {
+                args_.emplace(arg_id, name_val.second);         // num  arg
+            }
             args_.emplace(std::move(name_val));                 // name arg
         }
     }
@@ -697,7 +676,6 @@ public:
 
 
 
-
     void clear() noexcept
     {
         index_ = 0;
@@ -747,7 +725,6 @@ public:
 
 
 private:
-
     string_view::value_type curr_char() const
     {
         return fmt_[index_];
@@ -788,26 +765,23 @@ private:
 
 
 public:
-
     void parse()
     {
         if (next_char() != '{') 
         {
-            throw parse_error(format("parse format begin error, \"{}\" not '{}' begin\n",
-                                fmt_.substr(index_, 10), '{'));
+            throw parse_error("parse format begin error, not found '{'");
         }
 
         parse_arg();
 
         if (next_char() != '}')
         {
-            throw parse_error(format("parse format end error, '{}' not '}' end\n", curr_char()));
+            throw parse_error("parse format end error, not found '}'");
         }
     }
 
 
 private:
-
     void parse_arg()
     {
         bool is_escape = false;
@@ -1130,7 +1104,7 @@ private:
     }
 
 
-    bool has_arg_fmt(format_t fmts, arg_format arg_fmt) const
+    bool has_arg_fmt(format_t fmts, arg_format arg_fmt) const noexcept
     {
         return (fmts & (1 << static_cast<format_t>(arg_fmt))) != 0;
     }
@@ -1234,7 +1208,6 @@ private:
         {
             os.write("}", 1);
         }
-
     }
 
 
@@ -1258,12 +1231,12 @@ using formatter = basic_formatter<char>;
 namespace detail
 {
 
-static string_type vformat(string_view fmt, const format_args& args)
+inline static string_type vformat(string_view fmt, const format_args& args)
 {
     return formatter(fmt, args).to_string();
 }
 
-static void vformat(std::ostream& os, string_view fmt, const format_args& args)
+inline static void vformat(std::ostream& os, string_view fmt, const format_args& args)
 {
     formatter(fmt, args).to_ostream(os);
 }
@@ -1282,9 +1255,8 @@ static void vformat(std::ostream& os, string_view fmt, const format_args& args)
 
 
 
-
-template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK>
-detail::string_type format(detail::string_view fmt, Args&&... args)
+template<typename... Args>
+inline detail::string_type format(detail::string_view fmt, Args&&... args)
 {
     return detail::vformat(fmt,
         detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
@@ -1293,15 +1265,8 @@ detail::string_type format(detail::string_view fmt, Args&&... args)
 }
 
 
-template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
-detail::string_type format(detail::string_view fmt, Args&&... args)
-{
-    return detail::vformat(fmt, detail::format_args(std::forward<Args>(args)...));
-}
-
-
-template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
-void print(std::ostream& os, detail::string_view fmt, Args&&... args)
+template<typename... Args>
+inline void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
     detail::vformat(os, fmt,
         detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
@@ -1310,27 +1275,10 @@ void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 }
 
 
-template<typename... Args, __TEMPLATE_NUM_ARGS_PACK_CHECK = 0>
-void print(detail::string_view fmt, Args&&... args)
+template<typename... Args>
+inline void print(detail::string_view fmt, Args&&... args)
 {
-    detail::vformat(std::cout, fmt,
-        detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
-        std::forward_as_tuple(std::forward<Args>(args)...))
-    );
-}
-
-
-template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
-void print(std::ostream& os, detail::string_view fmt, Args&&... args)
-{
-    detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
-}
-
-
-template<typename... Args, __TEMPLATE_NAME_ARGS_PACK_CHECK = 0>
-void print(detail::string_view fmt, Args&&... args)
-{
-    detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
+    print(std::cout, fmt, std::forward<Args>(args)...);
 }
 
 

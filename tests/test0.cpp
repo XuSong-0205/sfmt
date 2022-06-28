@@ -187,8 +187,37 @@ void test2()
     std::string fmt = "起名测试: {test:@<20}, 名字参数: {num}, 默认位置参数: {}, 位置参数: {1}\n";
     sfmt::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
 
+    // C++17 string_view 测试
     using namespace std::string_view_literals;
-    sfmt::print("{} {} test\n"sv, "sfmt", "std::string_view");
+    sfmt::print("{} test...\n"sv, "std string_view");
+
+    // sfmt::print("{ 右括号不闭合测试~\n", 233);
+    // sfmt::print("{{ 嵌套测试~\n", 233);
+    // sfmt::print("max id test: {64}\n", 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    //         64);
+    // sfmt::print("not name test: {unknown}\n", NAME_ARG("test", "something"));
+
+
+    {
+        sfmt::print("{0} {1} {2}\n", 0, NAME_ARG("1", 1), 2);
+        auto a = 0;
+        auto b = 3.14;
+        auto c = "sfmt";
+        sfmt::print("{} {} {}, {0} {1} {2}, {a} {b} {2}\n", NAME_ARGS(a, b), c);
+
+        auto n0 = "xixi";
+        auto v0 = "me";
+        sfmt::print(sfmt::format("name: {{}}, love: {{}}!\n", "n0", "v0"), NAME_ARGS(n0, v0));
+
+    }
 
 }
 
