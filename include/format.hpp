@@ -523,9 +523,13 @@ public:
     
     basic_format_args& operator=(const basic_format_args&) = delete;
 
-
+    template<typename... Args>
+    basic_format_args(Args&&... args)
+        : basic_format_args(detail::make_index_sequence<sizeof...(args)>{},
+                            std::forward_as_tuple(std::forward<Args>(args)...)) { }
+    
     template<std::size_t... Idxs, typename... Args>
-    basic_format_args(indedx_sequence<Idxs...> index_seq, std::tuple<Args...>&& tup)
+    basic_format_args(indedx_sequence<Idxs...>, std::tuple<Args...>&& tup)
     {
         make_args({ __arg<Idxs>(std::get<Idxs>(tup), is_arg_type<Args>{})... });
     }
@@ -1258,27 +1262,21 @@ inline static void vformat(std::ostream& os, string_view fmt, const format_args&
 template<typename... Args>
 inline detail::string_type format(detail::string_view fmt, Args&&... args)
 {
-    return detail::vformat(fmt,
-        detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
-        std::forward_as_tuple(std::forward<Args>(args)...))
-    );
+    return detail::vformat(fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
 inline void print(std::ostream& os, detail::string_view fmt, Args&&... args)
 {
-    detail::vformat(os, fmt,
-        detail::format_args(detail::make_index_sequence<sizeof...(args)>{},
-        std::forward_as_tuple(std::forward<Args>(args)...))
-    );
+    detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
 inline void print(detail::string_view fmt, Args&&... args)
 {
-    print(std::cout, fmt, std::forward<Args>(args)...);
+    detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
