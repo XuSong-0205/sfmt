@@ -185,7 +185,8 @@ void test2()
     sfmt::print("{:p}\n", &num);                  // 打印 "0x******"
     
     std::string fmt = "起名测试: {test:@<20}, 名字参数: {num}, 默认位置参数: {}, 位置参数: {1}\n";
-    sfmt::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
+    // 错误，NAME_ARGS() 宏中不能是字符串字面量
+    // sfmt::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
 
     // C++17 string_view 测试
     using namespace std::string_view_literals;

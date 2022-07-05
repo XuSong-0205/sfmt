@@ -70,71 +70,71 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 
 
 #define UNPACK_1(OPT,  x, ...)      OPT(x)
-#define UNPACK_2(OPT,  x, ...)      OPT(x), UNPACK_1(OPT,  __VA_ARGS__)
-#define UNPACK_3(OPT,  x, ...)      OPT(x), UNPACK_2(OPT,  __VA_ARGS__)
-#define UNPACK_4(OPT,  x, ...)      OPT(x), UNPACK_3(OPT,  __VA_ARGS__)
-#define UNPACK_5(OPT,  x, ...)      OPT(x), UNPACK_4(OPT,  __VA_ARGS__)
-#define UNPACK_6(OPT,  x, ...)      OPT(x), UNPACK_5(OPT,  __VA_ARGS__)
-#define UNPACK_7(OPT,  x, ...)      OPT(x), UNPACK_6(OPT,  __VA_ARGS__)
-#define UNPACK_8(OPT,  x, ...)      OPT(x), UNPACK_7(OPT,  __VA_ARGS__)
-#define UNPACK_9(OPT,  x, ...)      OPT(x), UNPACK_8(OPT,  __VA_ARGS__)
-#define UNPACK_10(OPT, x, ...)      OPT(x), UNPACK_9(OPT,  __VA_ARGS__)
-#define UNPACK_11(OPT, x, ...)      OPT(x), UNPACK_10(OPT, __VA_ARGS__)
-#define UNPACK_12(OPT, x, ...)      OPT(x), UNPACK_11(OPT, __VA_ARGS__)
-#define UNPACK_13(OPT, x, ...)      OPT(x), UNPACK_12(OPT, __VA_ARGS__)
-#define UNPACK_14(OPT, x, ...)      OPT(x), UNPACK_13(OPT, __VA_ARGS__)
-#define UNPACK_15(OPT, x, ...)      OPT(x), UNPACK_14(OPT, __VA_ARGS__)
-#define UNPACK_16(OPT, x, ...)      OPT(x), UNPACK_15(OPT, __VA_ARGS__)
-#define UNPACK_17(OPT, x, ...)      OPT(x), UNPACK_16(OPT, __VA_ARGS__)
-#define UNPACK_18(OPT, x, ...)      OPT(x), UNPACK_17(OPT, __VA_ARGS__)
-#define UNPACK_19(OPT, x, ...)      OPT(x), UNPACK_18(OPT, __VA_ARGS__)
-#define UNPACK_20(OPT, x, ...)      OPT(x), UNPACK_19(OPT, __VA_ARGS__)
-#define UNPACK_21(OPT, x, ...)      OPT(x), UNPACK_20(OPT, __VA_ARGS__)
-#define UNPACK_22(OPT, x, ...)      OPT(x), UNPACK_21(OPT, __VA_ARGS__)
-#define UNPACK_23(OPT, x, ...)      OPT(x), UNPACK_22(OPT, __VA_ARGS__)
-#define UNPACK_24(OPT, x, ...)      OPT(x), UNPACK_23(OPT, __VA_ARGS__)
-#define UNPACK_25(OPT, x, ...)      OPT(x), UNPACK_24(OPT, __VA_ARGS__)
-#define UNPACK_26(OPT, x, ...)      OPT(x), UNPACK_25(OPT, __VA_ARGS__)
-#define UNPACK_27(OPT, x, ...)      OPT(x), UNPACK_26(OPT, __VA_ARGS__)
-#define UNPACK_28(OPT, x, ...)      OPT(x), UNPACK_27(OPT, __VA_ARGS__)
-#define UNPACK_29(OPT, x, ...)      OPT(x), UNPACK_28(OPT, __VA_ARGS__)
-#define UNPACK_30(OPT, x, ...)      OPT(x), UNPACK_29(OPT, __VA_ARGS__)
-#define UNPACK_31(OPT, x, ...)      OPT(x), UNPACK_30(OPT, __VA_ARGS__)
-#define UNPACK_32(OPT, x, ...)      OPT(x), UNPACK_31(OPT, __VA_ARGS__)
-#define UNPACK_33(OPT, x, ...)      OPT(x), UNPACK_32(OPT, __VA_ARGS__)
-#define UNPACK_34(OPT, x, ...)      OPT(x), UNPACK_33(OPT, __VA_ARGS__)
-#define UNPACK_35(OPT, x, ...)      OPT(x), UNPACK_34(OPT, __VA_ARGS__)
-#define UNPACK_36(OPT, x, ...)      OPT(x), UNPACK_35(OPT, __VA_ARGS__)
-#define UNPACK_37(OPT, x, ...)      OPT(x), UNPACK_36(OPT, __VA_ARGS__)
-#define UNPACK_38(OPT, x, ...)      OPT(x), UNPACK_37(OPT, __VA_ARGS__)
-#define UNPACK_39(OPT, x, ...)      OPT(x), UNPACK_38(OPT, __VA_ARGS__)
-#define UNPACK_40(OPT, x, ...)      OPT(x), UNPACK_39(OPT, __VA_ARGS__)
-#define UNPACK_41(OPT, x, ...)      OPT(x), UNPACK_40(OPT, __VA_ARGS__)
-#define UNPACK_42(OPT, x, ...)      OPT(x), UNPACK_41(OPT, __VA_ARGS__)
-#define UNPACK_43(OPT, x, ...)      OPT(x), UNPACK_42(OPT, __VA_ARGS__)
-#define UNPACK_44(OPT, x, ...)      OPT(x), UNPACK_43(OPT, __VA_ARGS__)
-#define UNPACK_45(OPT, x, ...)      OPT(x), UNPACK_44(OPT, __VA_ARGS__)
-#define UNPACK_46(OPT, x, ...)      OPT(x), UNPACK_45(OPT, __VA_ARGS__)
-#define UNPACK_47(OPT, x, ...)      OPT(x), UNPACK_46(OPT, __VA_ARGS__)
-#define UNPACK_48(OPT, x, ...)      OPT(x), UNPACK_47(OPT, __VA_ARGS__)
-#define UNPACK_49(OPT, x, ...)      OPT(x), UNPACK_48(OPT, __VA_ARGS__)
-#define UNPACK_50(OPT, x, ...)      OPT(x), UNPACK_49(OPT, __VA_ARGS__)
-#define UNPACK_51(OPT, x, ...)      OPT(x), UNPACK_50(OPT, __VA_ARGS__)
-#define UNPACK_52(OPT, x, ...)      OPT(x), UNPACK_51(OPT, __VA_ARGS__)
-#define UNPACK_53(OPT, x, ...)      OPT(x), UNPACK_52(OPT, __VA_ARGS__)
-#define UNPACK_54(OPT, x, ...)      OPT(x), UNPACK_53(OPT, __VA_ARGS__)
-#define UNPACK_55(OPT, x, ...)      OPT(x), UNPACK_54(OPT, __VA_ARGS__)
-#define UNPACK_56(OPT, x, ...)      OPT(x), UNPACK_55(OPT, __VA_ARGS__)
-#define UNPACK_57(OPT, x, ...)      OPT(x), UNPACK_56(OPT, __VA_ARGS__)
-#define UNPACK_58(OPT, x, ...)      OPT(x), UNPACK_57(OPT, __VA_ARGS__)
-#define UNPACK_59(OPT, x, ...)      OPT(x), UNPACK_58(OPT, __VA_ARGS__)
-#define UNPACK_60(OPT, x, ...)      OPT(x), UNPACK_59(OPT, __VA_ARGS__)
-#define UNPACK_61(OPT, x, ...)      OPT(x), UNPACK_60(OPT, __VA_ARGS__)
-#define UNPACK_62(OPT, x, ...)      OPT(x), UNPACK_61(OPT, __VA_ARGS__)
-#define UNPACK_63(OPT, x, ...)      OPT(x), UNPACK_62(OPT, __VA_ARGS__)
-#define UNPACK_64(OPT, x, ...)      OPT(x), UNPACK_63(OPT, __VA_ARGS__)
+#define UNPACK_2(OPT,  x, ...)      OPT(x), ARG(UNPACK_1(OPT,  __VA_ARGS__))
+#define UNPACK_3(OPT,  x, ...)      OPT(x), ARG(UNPACK_2(OPT,  __VA_ARGS__))
+#define UNPACK_4(OPT,  x, ...)      OPT(x), ARG(UNPACK_3(OPT,  __VA_ARGS__))
+#define UNPACK_5(OPT,  x, ...)      OPT(x), ARG(UNPACK_4(OPT,  __VA_ARGS__))
+#define UNPACK_6(OPT,  x, ...)      OPT(x), ARG(UNPACK_5(OPT,  __VA_ARGS__))
+#define UNPACK_7(OPT,  x, ...)      OPT(x), ARG(UNPACK_6(OPT,  __VA_ARGS__))
+#define UNPACK_8(OPT,  x, ...)      OPT(x), ARG(UNPACK_7(OPT,  __VA_ARGS__))
+#define UNPACK_9(OPT,  x, ...)      OPT(x), ARG(UNPACK_8(OPT,  __VA_ARGS__))
+#define UNPACK_10(OPT, x, ...)      OPT(x), ARG(UNPACK_9(OPT,  __VA_ARGS__))
+#define UNPACK_11(OPT, x, ...)      OPT(x), ARG(UNPACK_10(OPT, __VA_ARGS__))
+#define UNPACK_12(OPT, x, ...)      OPT(x), ARG(UNPACK_11(OPT, __VA_ARGS__))
+#define UNPACK_13(OPT, x, ...)      OPT(x), ARG(UNPACK_12(OPT, __VA_ARGS__))
+#define UNPACK_14(OPT, x, ...)      OPT(x), ARG(UNPACK_13(OPT, __VA_ARGS__))
+#define UNPACK_15(OPT, x, ...)      OPT(x), ARG(UNPACK_14(OPT, __VA_ARGS__))
+#define UNPACK_16(OPT, x, ...)      OPT(x), ARG(UNPACK_15(OPT, __VA_ARGS__))
+#define UNPACK_17(OPT, x, ...)      OPT(x), ARG(UNPACK_16(OPT, __VA_ARGS__))
+#define UNPACK_18(OPT, x, ...)      OPT(x), ARG(UNPACK_17(OPT, __VA_ARGS__))
+#define UNPACK_19(OPT, x, ...)      OPT(x), ARG(UNPACK_18(OPT, __VA_ARGS__))
+#define UNPACK_20(OPT, x, ...)      OPT(x), ARG(UNPACK_19(OPT, __VA_ARGS__))
+#define UNPACK_21(OPT, x, ...)      OPT(x), ARG(UNPACK_20(OPT, __VA_ARGS__))
+#define UNPACK_22(OPT, x, ...)      OPT(x), ARG(UNPACK_21(OPT, __VA_ARGS__))
+#define UNPACK_23(OPT, x, ...)      OPT(x), ARG(UNPACK_22(OPT, __VA_ARGS__))
+#define UNPACK_24(OPT, x, ...)      OPT(x), ARG(UNPACK_23(OPT, __VA_ARGS__))
+#define UNPACK_25(OPT, x, ...)      OPT(x), ARG(UNPACK_24(OPT, __VA_ARGS__))
+#define UNPACK_26(OPT, x, ...)      OPT(x), ARG(UNPACK_25(OPT, __VA_ARGS__))
+#define UNPACK_27(OPT, x, ...)      OPT(x), ARG(UNPACK_26(OPT, __VA_ARGS__))
+#define UNPACK_28(OPT, x, ...)      OPT(x), ARG(UNPACK_27(OPT, __VA_ARGS__))
+#define UNPACK_29(OPT, x, ...)      OPT(x), ARG(UNPACK_28(OPT, __VA_ARGS__))
+#define UNPACK_30(OPT, x, ...)      OPT(x), ARG(UNPACK_29(OPT, __VA_ARGS__))
+#define UNPACK_31(OPT, x, ...)      OPT(x), ARG(UNPACK_30(OPT, __VA_ARGS__))
+#define UNPACK_32(OPT, x, ...)      OPT(x), ARG(UNPACK_31(OPT, __VA_ARGS__))
+#define UNPACK_33(OPT, x, ...)      OPT(x), ARG(UNPACK_32(OPT, __VA_ARGS__))
+#define UNPACK_34(OPT, x, ...)      OPT(x), ARG(UNPACK_33(OPT, __VA_ARGS__))
+#define UNPACK_35(OPT, x, ...)      OPT(x), ARG(UNPACK_34(OPT, __VA_ARGS__))
+#define UNPACK_36(OPT, x, ...)      OPT(x), ARG(UNPACK_35(OPT, __VA_ARGS__))
+#define UNPACK_37(OPT, x, ...)      OPT(x), ARG(UNPACK_36(OPT, __VA_ARGS__))
+#define UNPACK_38(OPT, x, ...)      OPT(x), ARG(UNPACK_37(OPT, __VA_ARGS__))
+#define UNPACK_39(OPT, x, ...)      OPT(x), ARG(UNPACK_38(OPT, __VA_ARGS__))
+#define UNPACK_40(OPT, x, ...)      OPT(x), ARG(UNPACK_39(OPT, __VA_ARGS__))
+#define UNPACK_41(OPT, x, ...)      OPT(x), ARG(UNPACK_40(OPT, __VA_ARGS__))
+#define UNPACK_42(OPT, x, ...)      OPT(x), ARG(UNPACK_41(OPT, __VA_ARGS__))
+#define UNPACK_43(OPT, x, ...)      OPT(x), ARG(UNPACK_42(OPT, __VA_ARGS__))
+#define UNPACK_44(OPT, x, ...)      OPT(x), ARG(UNPACK_43(OPT, __VA_ARGS__))
+#define UNPACK_45(OPT, x, ...)      OPT(x), ARG(UNPACK_44(OPT, __VA_ARGS__))
+#define UNPACK_46(OPT, x, ...)      OPT(x), ARG(UNPACK_45(OPT, __VA_ARGS__))
+#define UNPACK_47(OPT, x, ...)      OPT(x), ARG(UNPACK_46(OPT, __VA_ARGS__))
+#define UNPACK_48(OPT, x, ...)      OPT(x), ARG(UNPACK_47(OPT, __VA_ARGS__))
+#define UNPACK_49(OPT, x, ...)      OPT(x), ARG(UNPACK_48(OPT, __VA_ARGS__))
+#define UNPACK_50(OPT, x, ...)      OPT(x), ARG(UNPACK_49(OPT, __VA_ARGS__))
+#define UNPACK_51(OPT, x, ...)      OPT(x), ARG(UNPACK_50(OPT, __VA_ARGS__))
+#define UNPACK_52(OPT, x, ...)      OPT(x), ARG(UNPACK_51(OPT, __VA_ARGS__))
+#define UNPACK_53(OPT, x, ...)      OPT(x), ARG(UNPACK_52(OPT, __VA_ARGS__))
+#define UNPACK_54(OPT, x, ...)      OPT(x), ARG(UNPACK_53(OPT, __VA_ARGS__))
+#define UNPACK_55(OPT, x, ...)      OPT(x), ARG(UNPACK_54(OPT, __VA_ARGS__))
+#define UNPACK_56(OPT, x, ...)      OPT(x), ARG(UNPACK_55(OPT, __VA_ARGS__))
+#define UNPACK_57(OPT, x, ...)      OPT(x), ARG(UNPACK_56(OPT, __VA_ARGS__))
+#define UNPACK_58(OPT, x, ...)      OPT(x), ARG(UNPACK_57(OPT, __VA_ARGS__))
+#define UNPACK_59(OPT, x, ...)      OPT(x), ARG(UNPACK_58(OPT, __VA_ARGS__))
+#define UNPACK_60(OPT, x, ...)      OPT(x), ARG(UNPACK_59(OPT, __VA_ARGS__))
+#define UNPACK_61(OPT, x, ...)      OPT(x), ARG(UNPACK_60(OPT, __VA_ARGS__))
+#define UNPACK_62(OPT, x, ...)      OPT(x), ARG(UNPACK_61(OPT, __VA_ARGS__))
+#define UNPACK_63(OPT, x, ...)      OPT(x), ARG(UNPACK_62(OPT, __VA_ARGS__))
+#define UNPACK_64(OPT, x, ...)      OPT(x), ARG(UNPACK_63(OPT, __VA_ARGS__))
 
-#define UNPACK_X( OPT,    ...)      CAT(UNPACK_, ARGS_COUNT(__VA_ARGS__))(OPT, __VA_ARGS__)
+#define UNPACK_X( OPT,    ...)      ARG(CAT(UNPACK_, ARGS_COUNT(__VA_ARGS__))(OPT, __VA_ARGS__))
 #define UNPACK(   OPT,    ...)      UNPACK_X(OPT, __VA_ARGS__)
 
 
@@ -152,16 +152,8 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 namespace detail
 {
 
-template<bool B, typename T>
-using enable_if_t = typename std::enable_if<B, T>::type;
-
-
 template<typename T>
 using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
-
-
-template<bool B>
-using bool_constant = std::integral_constant<bool, B>;
 
 
 
@@ -440,7 +432,7 @@ using arg_type          = std::pair<string_view, arg_value_type>;
 
 
 template<typename T>
-struct is_arg_type : bool_constant<std::is_same<remove_cvref_t<T>, arg_type>::value> { };
+struct is_arg_type : std::is_same<arg_type, remove_cvref_t<T>> { };
 
 
 
@@ -517,7 +509,7 @@ public:
 
 
 public:
-    basic_format_args() noexcept = default;
+    basic_format_args() = default;
     
     basic_format_args(const basic_format_args&) = delete;
     
