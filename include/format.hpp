@@ -157,43 +157,6 @@ using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<T>
 
 
 
-template<typename... Bn>
-struct __and;
-
-template<>
-struct __and<> : std::true_type { };
-
-template<typename B1>
-struct __and<B1> : B1 { };
-
-template<typename B1, typename B2, typename... Bn>
-struct __and<B1, B2, Bn...> : std::conditional<B1::value, __and<B2, Bn...>, B1>::type { };
-
-
-template<typename... Bn>
-struct __or;
-
-template<>
-struct __or<> : std::false_type { };
-
-template<typename B1>
-struct __or<B1> : B1 { };
-
-template<typename B1, typename B2, typename... Bn>
-struct __or<B1, B2, Bn...> : std::conditional<B1::value, B1, __or<B2, Bn...>>::type { };
-
-
-
-template<typename... Bn>
-using conjunction_t = typename __and<Bn...>::type;
-
-
-template<typename... Bn>
-using disjunction_t = typename __or<Bn...>::type;
-
-
-
-
 template<typename T, T... Ints>
 struct integer_sequence
 {
