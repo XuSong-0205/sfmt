@@ -24,7 +24,7 @@
 
 #if SFMT_CPLUSPLUS >= 201703L
 #   include <string_view>   // std::string_view
-#   define __HAS_STD_STRING_VIEW    1
+#   define __HAS_CXX17    1
 #endif
 
 
@@ -152,9 +152,18 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 namespace detail
 {
 
+template<typename... Args>
+struct make_void
+{
+    using type = void;
+};
+
+template<typename... Args>
+using void_t = typename make_void<Args...>::type;
+
+
 template<typename T>
 using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
-
 
 
 template<typename T, T... Ints>
@@ -272,10 +281,10 @@ public:
     basic_string_view(const std::basic_string<CharT, Traits, Alloc>& str) noexcept
         : data_(str.data()), size_(str.size()) { }
 
-#ifdef __HAS_STD_STRING_VIEW
+#ifdef __HAS_CXX17
     basic_string_view(std::basic_string_view<CharT> str) noexcept
         : data_(str.data()), size_(str.size()) { }
-#endif // __HAS_STD_STRING_VIEW
+#endif // __HAS_CXX17
 
 
 
@@ -393,10 +402,20 @@ using arg_value_type    = std::function<void(std::ostream&)>;
 using arg_type          = std::pair<string_view, arg_value_type>;
 
 
-
 template<typename T>
 struct is_arg_type : std::is_same<arg_type, remove_cvref_t<T>> { };
 
+template<typename T, typename = void>
+struct can_to_arg_type : std::false_type { };
+
+template<typename T>
+struct can_to_arg_type<T, void_t<decltype(std::declval<std::ostream&>() << std::declval<const T&>())>> : std::true_type { };
+
+template<typename T>
+struct as_arg_type : std::disjunction<is_arg_type<T>, can_to_arg_type<T>> { };
+
+template<typename... Args>
+struct as_arg_type_list : std::conjunction<as_arg_type<Args>...> { };
 
 
 }   // namespace detail
@@ -448,7 +467,7 @@ public:
 
 // forward declaration
 template<typename... Args>
-inline detail::string_type format(detail::string_view fmt, Args&&... args);
+inline auto format(detail::string_view fmt, Args&&... args) -> typename std::enable_if<detail::as_arg_type_list<Args...>::value, detail::string_type>::type;
 
 
 
@@ -1215,21 +1234,24 @@ inline static void vformat(std::ostream& os, string_view fmt, const format_args&
 
 
 template<typename... Args>
-inline detail::string_type format(detail::string_view fmt, Args&&... args)
+inline auto format(detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value, detail::string_type>::type
 {
     return detail::vformat(fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
-inline void print(std::ostream& os, detail::string_view fmt, Args&&... args)
+inline auto print(std::ostream& os, detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
 {
     detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
 }
 
 
 template<typename... Args>
-inline void print(detail::string_view fmt, Args&&... args)
+inline auto print(detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
 {
     detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
 }
