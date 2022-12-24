@@ -152,6 +152,12 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 namespace detail
 {
 
+template<typename T>
+struct type_identity
+{
+    using type = T;
+};
+
 template<typename... Args>
 struct make_void
 {
@@ -160,6 +166,32 @@ struct make_void
 
 template<typename... Args>
 using void_t = typename make_void<Args...>::type;
+
+
+template<bool First_value, typename First, typename... Rest>
+struct __disjunction : type_identity<First> { };
+
+template<typename False, typename Next, typename... Rest>
+struct __disjunction<false, False, Next, Rest...> : __disjunction<Next::value, Next, Rest...>::type { };
+
+template<typename... Traits>
+struct disjunction : std::false_type { };
+
+template<typename First, typename... Rest>
+struct disjunction<First, Rest...> : __disjunction<First::value, First, Rest...>::type { };
+
+
+template<bool First_value, typename First, typename... Rest>
+struct __conjunction : type_identity<First> { };
+
+template<typename True, typename Next, typename... Rest>
+struct __conjunction<true, True, Next, Rest...> : __conjunction<Next::value, Next, Rest...>::type { };
+
+template<typename... Traits>
+struct conjunction : std::true_type { };
+
+template<typename First, typename... Rest>
+struct conjunction<First, Rest...> : __conjunction<First::value, First, Rest...>::type { };
 
 
 template<typename T>
@@ -412,10 +444,10 @@ template<typename T>
 struct can_to_arg_type<T, void_t<decltype(std::declval<std::ostream&>() << std::declval<const T&>())>> : std::true_type { };
 
 template<typename T>
-struct as_arg_type : std::disjunction<is_arg_type<T>, can_to_arg_type<T>> { };
+struct as_arg_type : disjunction<is_arg_type<T>, can_to_arg_type<T>> { };
 
 template<typename... Args>
-struct as_arg_type_list : std::conjunction<as_arg_type<Args>...> { };
+struct as_arg_type_list : conjunction<as_arg_type<Args>...> { };
 
 
 }   // namespace detail
