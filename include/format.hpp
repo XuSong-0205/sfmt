@@ -148,7 +148,7 @@ ARG(ARGN(__VA_ARGS__,               64, 63, 62, 61,             \
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// TMP
+// template meta function
 namespace detail
 {
 
@@ -421,7 +421,7 @@ struct is_basic_string_view<basic_string_view<CharT>> : std::true_type { };
 
 
 
-// type alias
+// type alias/template meta function
 namespace detail
 {
 
@@ -438,13 +438,13 @@ template<typename T>
 struct is_arg_type : std::is_same<arg_type, remove_cvref_t<T>> { };
 
 template<typename T, typename = void>
-struct can_to_arg_type : std::false_type { };
+struct to_arg_type : std::false_type { };
 
 template<typename T>
-struct can_to_arg_type<T, void_t<decltype(std::declval<std::ostream&>() << std::declval<const T&>())>> : std::true_type { };
+struct to_arg_type<T, void_t<decltype(std::declval<std::ostream&>() << std::declval<const T&>())>> : std::true_type { };
 
 template<typename T>
-struct as_arg_type : disjunction<is_arg_type<T>, can_to_arg_type<T>> { };
+struct as_arg_type : disjunction<is_arg_type<T>, to_arg_type<T>> { };
 
 template<typename... Args>
 struct as_arg_type_list : conjunction<as_arg_type<Args>...> { };
@@ -499,7 +499,8 @@ public:
 
 // forward declaration
 template<typename... Args>
-inline auto format(detail::string_view fmt, Args&&... args) -> typename std::enable_if<detail::as_arg_type_list<Args...>::value, detail::string_type>::type;
+inline auto format(detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value, detail::string_type>::type;
 
 
 
