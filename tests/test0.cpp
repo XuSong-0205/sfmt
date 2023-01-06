@@ -188,9 +188,11 @@ void test2()
     // 错误，NAME_ARGS() 宏中不能是字符串字面量
     // sfmt::print(fmt, NAME_ARGS(num, "临时变量"), NAME_ARG("test", "测试成功！"));
 
+#if __HAS_CXX17
     // C++17 string_view 测试
     using namespace std::string_view_literals;
     sfmt::print("{} test...\n"sv, "std string_view");
+#endif // __HAS_CXX17
 
     // sfmt::print("{ 右括号不闭合测试~\n", 233);
     // sfmt::print("{{ 嵌套测试~\n", 233);
