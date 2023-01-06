@@ -605,10 +605,10 @@ private:
 
     void make_args(init_list_type<arg_type> args_list)
     {
-        size_type i = 0;
+        size_type id = 0;
         for (auto&& name_val : args_list)
         {
-            auto arg_id = num_arg_id(i++);
+            auto arg_id = num_arg_id(id++);
             if (name_val.first != arg_id)
             {
                 args_.emplace(arg_id, name_val.second);         // num  arg
@@ -1107,7 +1107,6 @@ private:
             }
 
             to_format(os, fmt_parse, *arg_iter);
-
             index = fmt_parse.get_index();
         }
 
@@ -1156,7 +1155,7 @@ private:
 
         if (has_arg_fmt(fmts, arg_format::fmt_width))
         {
-            os << std::setfill(fmt_parse.get_fill_char()) <<  std::setw(fmt_parse.get_width());
+            os << std::setfill(fmt_parse.get_fill_char()) << std::setw(fmt_parse.get_width());
         }
 
         if (has_arg_fmt(fmts, arg_format::fmt_prec))
@@ -1192,7 +1191,7 @@ private:
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_e))
         {
-            os << std::showbase << std::scientific  << std::nouppercase;
+            os << std::showbase << std::scientific << std::nouppercase;
         }
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_E))
@@ -1202,12 +1201,12 @@ private:
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_f))
         {
-            os << std::showbase << std::showbase << std::fixed;
+            os << std::showbase << std::fixed;
         }
 
         if (has_arg_fmt(fmts, arg_format::fmt_type_p))
         {
-            os << std::showbase << std::hex  << std::nouppercase;
+            os << std::showbase << std::hex << std::nouppercase;
         }
 
 
