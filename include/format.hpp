@@ -577,14 +577,16 @@ public:
 
 
     template<typename T>
-    static arg_type num_arg(size_type num, T&& val) noexcept
+    static auto num_arg(size_type num, T&& val) noexcept
+        -> typename std::enable_if<to_arg_type<T>::value, arg_type>::type
     {
         return { num_arg_id(num), arg_value(std::forward<T>(val)) };
     }
 
 
     template<typename T>
-    static arg_type name_arg(string_view name, T&& val) noexcept
+    static auto name_arg(string_view name, T&& val) noexcept
+        -> typename std::enable_if<to_arg_type<T>::value, arg_type>::type
     {
         return { name, arg_value(std::forward<T>(val)) };
     }

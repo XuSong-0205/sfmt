@@ -220,6 +220,13 @@ void test2()
         auto v0 = "me";
         sfmt::print(sfmt::format("name: {{}}, love: {{}}!\n", "n0", "v0"), NAME_ARGS(n0, v0));
 
+        struct A { };
+        A aa;
+        // 错误，不能输出，且类型检查报错
+        // sfmt::print("aa: {}\n", aa);
+        // sfmt::print("aa: {aa}", NAME_ARG("aa", aa));
+        // sfmt::print("aa: {aa}\n", NAME_ARGS(aa));
+
     }
 
 }
