@@ -1295,7 +1295,7 @@ template<typename... Args>
 inline auto println(std::ostream& os, detail::string_view fmt, Args&&... args) 
     -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
 {
-    detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
+    print(os, fmt, std::forward<Args>(args)...);
     os << '\n';
 }
 
@@ -1304,8 +1304,7 @@ template<typename... Args>
 inline auto println(detail::string_view fmt, Args&&... args) 
     -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
 {
-    detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
-    os << '\n';
+    println(std::cout, fmt, std::forward<Args>(args)...);
 }
 
 
