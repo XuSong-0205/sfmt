@@ -1291,6 +1291,24 @@ inline auto print(detail::string_view fmt, Args&&... args)
 }
 
 
+template<typename... Args>
+inline auto println(std::ostream& os, detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
+{
+    detail::vformat(os, fmt, detail::format_args(std::forward<Args>(args)...));
+    os << '\n';
+}
+
+
+template<typename... Args>
+inline auto println(detail::string_view fmt, Args&&... args) 
+    -> typename std::enable_if<detail::as_arg_type_list<Args...>::value>::type
+{
+    detail::vformat(std::cout, fmt, detail::format_args(std::forward<Args>(args)...));
+    os << '\n';
+}
+
+
 }   // namespace sfmt
 
 #endif // FORMAT_HPP
